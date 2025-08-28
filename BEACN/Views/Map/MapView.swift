@@ -291,7 +291,7 @@ struct SearchOverlayView: View {
                     text: $query,
                     isSearching: $isSearching,
                     searchFieldFocused: $searchFieldFocused,
-                    showsCancel: false,
+                    showsCancel: true,
                     onSubmit: {
                         onSubmit?() // 👈 call parent
                     }
