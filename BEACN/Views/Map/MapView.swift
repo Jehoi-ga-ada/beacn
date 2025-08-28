@@ -61,29 +61,39 @@ struct MapView: View {
                     }
                     
                     if !viewModel.searchResults.isEmpty {
-                        List(viewModel.searchResults, id: \.self) { item in
-                            Button(action: {
-                                if let coord = item.placemark.location?.coordinate {
-                                    viewModel.region = MKCoordinateRegion(
-                                        center: coord,
-                                        span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-                                    )
-                                }
-                                viewModel.searchResults = []
-                            }) {
-                                VStack(alignment: .leading) {
-                                    Text(item.name ?? "Unknown")
-                                        .font(.headline)
-                                    Text(item.placemark.title ?? "")
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
+                        ScrollView {
+                            VStack(spacing: 0) {
+                                ForEach(viewModel.searchResults, id: \.self) { item in
+                                    Button(action: {
+                                        if let coord = item.placemark.location?.coordinate {
+                                            viewModel.region = MKCoordinateRegion(
+                                                center: coord,
+                                                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                                            )
+                                        }
+                                        viewModel.searchResults = []
+                                    }) {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(item.name ?? "Unknown")
+                                                .font(.headline)
+                                                .foregroundColor(.black)
+                                            Text(item.placemark.title ?? "")
+                                                .font(.subheadline)
+                                                .foregroundColor(.gray)
+                                        }
+                                        .padding()
+                                        .background(Color.white)
+                                        .cornerRadius(12)
+                                        .padding(.horizontal, 30)
+                                        .padding(.vertical, 2)
+                                    }
                                 }
                             }
                         }
-                        .frame(height: 200)
-                        .cornerRadius(12)
-                        .padding(.horizontal)
+                        .frame(maxHeight: 200)
+                        .padding(.top, 10)
                     }
+
                 }
                 
                 VStack {
@@ -292,8 +302,14 @@ struct SearchOverlayView: View {
                     isSearching: $isSearching,
                     searchFieldFocused: $searchFieldFocused,
                     showsCancel: true,
+                    onCancel: {
+                        withAnimation {
+                            isSearching = false
+                            searchFieldFocused = false
+                        }
+                    },
                     onSubmit: {
-                        onSubmit?() // 👈 call parent
+                        onSubmit?()
                     }
                 )
                 .padding()

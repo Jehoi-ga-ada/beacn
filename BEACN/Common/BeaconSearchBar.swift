@@ -42,6 +42,10 @@ struct BeaconSearchBar: View {
             
             if showsCancel {
                 Button("Cancel") {
+                    searchFieldFocused = false
+                    withAnimation {
+                        isSearching = false
+                    }
                     onCancel?()
                 }
                 .foregroundColor(.blue)
@@ -49,5 +53,6 @@ struct BeaconSearchBar: View {
             }
         }
         .animation(.easeInOut, value: showsCancel)
+        .padding(.horizontal, 10)
     }
 }
