@@ -13,6 +13,9 @@ struct MapView: View {
     @State private var trackingMode: MapUserTrackingMode = .follow
     @State private var isSearching: Bool = false
     @FocusState private var searchFieldFocused: Bool
+    @StateObject var reportStore = ReportStore()
+    @State private var selectedReport: Report?
+
 
 
     
@@ -42,28 +45,20 @@ struct MapView: View {
                 
                 
                 VStack(spacing: 0) {
-                    HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(.gray)
-                        
-                        TextField("Search places…", text: $viewModel.searchQuery, onEditingChanged: { editing in
-                            if editing {
-                                withAnimation {
-                                    isSearching = true
-                                }
+                    if !isSearching {
+                        BeaconSearchBar(
+                            text: $viewModel.searchQuery,
+                            isSearching: $isSearching,
+                            searchFieldFocused: $searchFieldFocused,
+                            showsCancel: false,
+                            onSubmit: {
+                                viewModel.searchPlaces()
+                                dismissSearch()
                             }
-                        }, onCommit: {
-                            viewModel.searchPlaces()
-                            trackingMode = .none
-                        })
-                        .focused($searchFieldFocused)
+                        )
+                        .padding(.horizontal)
+                        .padding(.top, 17)
                     }
-                    .padding(15)
-                    .background(Color.white.opacity(0.85))
-                    .cornerRadius(30)
-                    .shadow(radius: 3)
-                    .padding(.horizontal)
-                    .padding(.top, 20)
                     
                     if !viewModel.searchResults.isEmpty {
                         List(viewModel.searchResults, id: \.self) { item in
@@ -71,10 +66,10 @@ struct MapView: View {
                                 if let coord = item.placemark.location?.coordinate {
                                     viewModel.region = MKCoordinateRegion(
                                         center: coord,
-                                        span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
+                                        span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
                                     )
                                 }
-                                viewModel.searchResults = [] // close list
+                                viewModel.searchResults = []
                             }) {
                                 VStack(alignment: .leading) {
                                     Text(item.name ?? "Unknown")
@@ -134,7 +129,7 @@ struct MapView: View {
                         
                         Spacer()
                         
-                        Button(action: { print("Megaphone tapped") }) {
+                        Button(action: { viewModel.showReportSheet = true }) {
                             Image(systemName: "megaphone.fill")
                                 .resizable()
                                 .scaledToFit()
@@ -145,6 +140,34 @@ struct MapView: View {
                                 .clipShape(Circle())
                                 .shadow(radius: 4)
                         }
+                        .sheet(isPresented: $viewModel.showReportSheet) {
+                            if let selectedType = viewModel.selectedReportType {
+                                // Show subcategories if a category is selected
+                                SubcategorySheetView(
+                                    type: selectedType,
+                                    onBack: { viewModel.selectedReportType = nil },
+                                    onSelect: { sub in
+                                        viewModel.selectedReportType = nil
+                                        viewModel.showReportSheet = false
+                                        viewModel.selectedSubcategory = sub
+                                        
+                                        // Show location picker
+                                        if let current = viewModel.region.center as CLLocationCoordinate2D? {
+                                            viewModel.showLocationPicker = true
+                                        }
+                                    }
+                                )
+
+                                .presentationDetents([.medium])
+                            } else {
+                                // Show main categories first
+                                ReportSheetView { type in
+                                    viewModel.selectedReportType = type
+                                }
+                                .presentationDetents([.medium])
+                            }
+                        }
+
                     }
                     .padding(.horizontal, 20)
                 }
@@ -152,15 +175,22 @@ struct MapView: View {
                     SearchOverlayView(
                         isSearching: $isSearching,
                         searchFieldFocused: $searchFieldFocused,
+                        query: $viewModel.searchQuery,
                         recentSearches: viewModel.recentSearches,
                         savedPlaces: viewModel.savedPlaces,
                         onRecentSelected: { recent in
+                            viewModel.searchQuery = recent.name
+                            viewModel.searchPlaces()
                             dismissSearch()
                         },
                         onSavedPlaceSelected: { place in
                             withAnimation {
                                 viewModel.focusOn(place)
                             }
+                            dismissSearch()
+                        },
+                        onSubmit: { // 👈 wire in parent logic
+                            viewModel.searchPlaces()
                             dismissSearch()
                         }
                     )
@@ -173,7 +203,18 @@ struct MapView: View {
 
             }
         }
+        .fullScreenCover(isPresented: $viewModel.showLocationPicker) {
+            ReportLocationPickerView(
+                userLocation: viewModel.region.center,
+                emoji: viewModel.selectedSubcategory?.emoji ?? "📍"
+            ) { coord in
+                print("User placed report at: \(coord.latitude), \(coord.longitude)")
+                // TODO: Save report with coord + selectedSubcategory
+            }
+        }
+
     }
+    
     private func dismissSearch() {
         withAnimation {
             isSearching = false
@@ -231,70 +272,91 @@ struct OrbitView: View {
 struct SearchOverlayView: View {
     @Binding var isSearching: Bool
     @FocusState<Bool>.Binding var searchFieldFocused: Bool
+    @Binding var query: String
+    
     var recentSearches: [RecentSearch]
     var savedPlaces: [Place]
     var onRecentSelected: (RecentSearch) -> Void
     var onSavedPlaceSelected: (Place) -> Void
-
+    var onSubmit: (() -> Void)? = nil
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            
+        ZStack(alignment: .top) {
+            Color.black.opacity(0.8)
+                .ignoresSafeArea()
+                .onTapGesture { dismissOverlay() }
             
             VStack(alignment: .leading, spacing: 16) {
+                BeaconSearchBar(
+                    text: $query,
+                    isSearching: $isSearching,
+                    searchFieldFocused: $searchFieldFocused,
+                    showsCancel: false,
+                    onSubmit: {
+                        onSubmit?() // 👈 call parent
+                    }
+                )
+                .padding()
+
                 
-                // Recents Section
-                if !recentSearches.isEmpty {
-                    Text("Recents")
-                        .font(.headline)
-                        .foregroundColor(.gray)
-                        .padding(.horizontal)
-                    
-                    VStack(alignment: .leading, spacing: 0) {
-                        ForEach(recentSearches) { recent in
-                            ItemRow(title: recent.name, icon: "magnifyingglass")
-                                .onTapGesture {
-                                    onRecentSelected(recent)
-                                    dismissOverlay()
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 24) {
+                        
+                        // Recents Section
+                        if !recentSearches.isEmpty {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Recents")
+                                    .font(.headline)
+                                    .foregroundColor(.gray)
+                                
+                                ForEach(recentSearches) { recent in
+                                    ItemRow(title: recent.name, icon: "magnifyingglass")
+                                        .foregroundColor(.white)
+                                        .onTapGesture {
+                                            query = recent.name              // 1. autofill
+                                            onRecentSelected(recent)         // 2. pass event up
+                                        }
                                 }
+
+                            }
+                        }
+                        
+                        // Saved Places Section
+                        if !savedPlaces.isEmpty {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Saved Places")
+                                    .font(.headline)
+                                    .foregroundColor(.gray)
+                                
+                                ForEach(savedPlaces) { place in
+                                    ItemRow(title: place.name, emoji: place.emoji)
+                                        .foregroundColor(.white)
+                                        .onTapGesture {
+                                            onSavedPlaceSelected(place)
+                                            dismissOverlay()
+                                        }
+                                }
+                            }
                         }
                     }
+                    .padding(.horizontal)
                 }
                 
-                // Saved Places Section
-                if !savedPlaces.isEmpty {
-                    Text("Saved Places")
-                        .font(.headline)
-                        .foregroundColor(.gray)
-                        .padding(.horizontal)
-                    
-                    VStack(alignment: .leading, spacing: 0) {
-                        ForEach(savedPlaces) { place in
-                            ItemRow(title: place.name, icon: nil, emoji: place.emoji)
-                                .onTapGesture {
-                                    onSavedPlaceSelected(place)
-                                    dismissOverlay()
-                                }
-                        }
-                    }
-                }
+                Spacer()
             }
-            .padding(.top, 20)
-            .background(.ultraThinMaterial)
-            .cornerRadius(12)
-            .padding(.horizontal)
-            .padding(.bottom, 200)
-            
-            Spacer()
         }
+        .transition(.opacity)
     }
+    
     private func dismissOverlay() {
         withAnimation {
             isSearching = false
             searchFieldFocused = false
         }
     }
-
 }
+
+
 
 struct ItemRow: View {
     var title: String
@@ -308,20 +370,19 @@ struct ItemRow: View {
                     .font(.title2)
             } else if let icon = icon {
                 Image(systemName: icon)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.white.opacity(0.7))
             }
             
-            VStack(alignment: .leading) {
-                Text(title)
-                    .font(.body)
-                    .foregroundColor(.primary)
-            }
+            Text(title)
+                .font(.body)
+                .foregroundColor(.white)
+            
             Spacer()
         }
-        .padding(.horizontal)
         .padding(.vertical, 8)
     }
 }
+
 
 struct RecentSearch: Identifiable {
     let id = UUID()

@@ -8,10 +8,12 @@
 import Foundation
 import MapKit
 import SwiftUI
+import Combine
 
 class MapVM: ObservableObject {
     let coordinator: AppCoordinator
     private let locationService: LocationService
+    private var cancellables = Set<AnyCancellable>()
     
     @Published var region = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: -6.2088, longitude: 106.8456), // fallback: Jakarta
@@ -36,6 +38,13 @@ class MapVM: ObservableObject {
         RecentSearch(name: "Jalan Damai Indah"),
         RecentSearch(name: "Damai Indah Residence")
     ]
+    
+    @Published var showReportSheet: Bool = false
+    @Published var selectedReportType: ReportType? = nil
+    @Published var selectedSubcategory: ReportSubcategory? = nil
+    
+    @Published var showLocationPicker: Bool = false
+
 
     func handleRecentSearchSelection(_ recent: RecentSearch) {
 
@@ -56,6 +65,18 @@ class MapVM: ObservableObject {
     init(coordinator: AppCoordinator, locationService: LocationService = LocationService()) {
         self.coordinator = coordinator
         self.locationService = locationService
+        
+        // 👇 Subscribe to location updates
+        locationService.$currentLocation
+            .compactMap { $0 }
+            .first() // only recenter once at app start
+            .sink { [weak self] location in
+                self?.region = MKCoordinateRegion(
+                    center: location.coordinate,
+                    span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                )
+            }
+            .store(in: &cancellables)
     }
     
     func toggleOrbit() {
