@@ -15,11 +15,13 @@ struct SavedPlace: Codable {
     let latitude: Double
     let longitude: Double
     let createdAt: String
+    let emoji: String
 
     enum CodingKeys: String, CodingKey {
         case id, name, latitude, longitude
         case userId = "user_id"
         case createdAt = "created_at"
+        case emoji
     }
 }
 
@@ -40,7 +42,7 @@ struct CreateSavedPlaceRequest: Encodable {
 // MARK: - Service
 final class SavedPlaceService: BaseService {
     init() {
-        super.init(endpoint: "saved-places")
+        super.init(endpoint: "savedplaces")
     }
 
     func getAllSavedPlaces() async throws -> [SavedPlace] {
