@@ -13,6 +13,8 @@ import Combine
 class MapVM: ObservableObject {
     let coordinator: AppCoordinator
     private let locationService: LocationService
+    let reportService: ReportService = ReportService()
+    let savedPlaceService: SavedPlaceService = SavedPlaceService()
     private var cancellables = Set<AnyCancellable>()
     
     @Published var region = MKCoordinateRegion(

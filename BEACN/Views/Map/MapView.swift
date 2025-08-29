@@ -271,6 +271,10 @@ struct MapView: View {
                 emoji: viewModel.selectedSubcategory?.emoji ?? "📍"
             ) { coord in
                 print("User placed report at: \(coord.latitude), \(coord.longitude)")
+                Task {
+                    let response = try await viewModel.reportService.createReport(categoryName: viewModel.selectedSubcategory?.name ?? "Fallback", latitude: coord.latitude, longitude: coord.latitude)
+                    print(response)
+                }
                 // TODO: Save report with coord + selectedSubcategory
             }
         }

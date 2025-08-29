@@ -66,15 +66,6 @@ struct ReportSubcategory: Identifiable {
     let emoji: String
 }
 
-// MARK: - Protocol
-protocol ReportServiceProtocol {
-    func createReport(categoryId: String, latitude: Double, longitude: Double) async throws -> Report
-    func getAllReports() async throws -> [Report]
-    func getReports(lat: Double, lng: Double, radius: Double) async throws -> [Report]
-    func updateReport(id: String, latitude: Double, longitude: Double) async throws -> Report
-    func deleteReport(id: String) async throws -> Bool
-}
-
 // MARK: - Models
 struct ReportUpvoteCount: Codable {
     let count: Int
@@ -112,18 +103,27 @@ struct CreateReportRequest: Encodable {
 }
 
 // MARK: - Service
-final class ReportService: BaseService, ReportServiceProtocol {
+final class ReportService: BaseService {
+    let categoryService = CategoryService()
     init() {
         super.init(endpoint: "reports")
     }
 
-    func createReport(categoryId: String, latitude: Double, longitude: Double) async throws -> Report {
+    func createReport(categoryName: String, latitude: Double, longitude: Double) async throws -> Report {
+        let categories = try await categoryService.getAllCategories()
+        guard let category = categories.first(where: { $0.category.lowercased() == categoryName.lowercased() }),
+              let categoryId = category.id else {
+            throw NSError(domain: "ReportService",
+                          code: 404,
+                          userInfo: [NSLocalizedDescriptionKey: "Category '\(categoryName)' not found"])
+        }
+        
         let body = try JSONEncoder().encode(CreateReportRequest(
             category_id: categoryId,
             latitude: latitude,
             longitude: longitude
         ))
-        let request = try await makeRequest(method: "POST", body: body)
+        let request = try await makeRequest(method: "POST", body: body, useUserAuth: true)
         return try await performRequest(request)
     }
 

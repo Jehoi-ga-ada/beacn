@@ -22,6 +22,18 @@ struct BEACNApp: App {
 //            fatalError("Could not create ModelContainer: \(error)")
 //        }
 //    }()
+    
+    init() {
+        Task {
+            let authService = AuthService()
+            do {
+                _ = try await authService.signIn(email: "sayajehoiada@gmail.com", password: "Jehoiada1509!")
+            } catch {
+                print("Login failed")
+            }
+        }
+    }
+    
     @StateObject private var appCoordinator = AppCoordinator()
     var body: some Scene {
         WindowGroup {
@@ -46,6 +58,14 @@ struct BEACNApp: App {
 //            let categoryService = CategoryService()
 //            do {
 //                let categories = try await categoryService.getAllCategories()
+//                let categoryName = "Flood"
+//                guard let category = categories.first(where: { $0.category.lowercased() == categoryName.lowercased() }),
+//                      let categoryId = category.id else {
+//                    throw NSError(domain: "ReportService",
+//                                  code: 404,
+//                                  userInfo: [NSLocalizedDescriptionKey: "Category '\(categoryName)' not found"])
+//                }
+//                print("Found:", categoryId)
 //                print("✅ Categories:", categories)
 //            } catch {
 //                print("❌ Error:", error)
@@ -72,7 +92,7 @@ struct BEACNApp: App {
 //            // MARK: - Done
 //            let reportService = ReportService()
 //            do {
-//                let reports = try await reportService.getAllReports()
+//                let reports = try await reportService.createReport(categoryName: "Flood", latitude: 999, longitude: 999)
 //                print("✅ Reports:", reports)
 //            } catch {
 //                print("❌ Error:", error)
