@@ -8,7 +8,7 @@
 import Foundation
 import CoreLocation
 
-struct Report: Identifiable {
+struct ReportView: Identifiable {
     let id = UUID()
     let category: String
     let emoji: String
