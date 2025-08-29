@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import CoreLocation
 
 // MARK: - Model
 struct SavedPlace: Codable {
@@ -22,6 +23,12 @@ struct SavedPlace: Codable {
         case userId = "user_id"
         case createdAt = "created_at"
         case emoji
+    }
+}
+
+extension SavedPlace {
+    var coordinate: CLLocationCoordinate2D {
+        CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
     }
 }
 
