@@ -9,23 +9,30 @@
 import Foundation
 import CoreLocation
 
+@MainActor
 class ReportStore: ObservableObject {
-    @Published var reports: [Report] = [
-        Report(
-            category: "Flood Reported",
-            emoji: "🌊",
-            timestamp: Date(),
-            reporter: "You",
-            upvotes: 0,
-            coordinate: CLLocationCoordinate2D(latitude: -6.2088, longitude: 106.8456)
-        ),
-        Report(
-            category: "Traffic Jam",
-            emoji: "🚗",
-            timestamp: Date().addingTimeInterval(-300),
-            reporter: "Jessica",
-            upvotes: 3,
-            coordinate: CLLocationCoordinate2D(latitude: -6.21, longitude: 106.84)
-        )
-    ]
+    private let reportService: ReportService
+    
+    @Published var reports: [Report] = []
+    @Published var error: Error? = nil
+    @Published var isLoading: Bool = false
+    
+    init(reportService: ReportService = ReportService()) {
+        self.reportService = reportService
+    }
+    
+    /// Loads reports asynchronously
+    func loadReports() async {
+        isLoading = true
+        defer { isLoading = false }
+        
+        do {
+            let fetchedReports = try await reportService.getAllReports()
+            self.reports = fetchedReports
+            self.error = nil
+        } catch {
+            self.reports = []
+            self.error = error
+        }
+    }
 }
