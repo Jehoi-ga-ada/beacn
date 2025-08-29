@@ -37,6 +37,7 @@ struct BeaconSearchBar: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .background(Color.white.opacity(0.85))
+//            .background(.ultraThinMaterial)
             .cornerRadius(30)
             .shadow(radius: 3)
             

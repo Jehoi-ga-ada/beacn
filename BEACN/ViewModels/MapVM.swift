@@ -44,11 +44,66 @@ class MapVM: ObservableObject {
     @Published var selectedSubcategory: ReportSubcategory? = nil
     
     @Published var showLocationPicker: Bool = false
+    
 
+    @Published var pendingPlace: Place? = nil
+    @Published var showSavePlaceSheet: Bool = false
+    
+    @Published var showEditPlaceSheet: Bool = false
+    @Published var editingPlace: Place? = nil
+    @Published var editPlaceName: String = ""
+    @Published var selectedEmoji: String = "📍"
 
-    func handleRecentSearchSelection(_ recent: RecentSearch) {
-
+    func selectSearchResult(_ item: MKMapItem) {
+        guard let coord = item.placemark.location?.coordinate else { return }
+        let newPlace = Place(
+            id: Int.random(in: 1000...9999),
+            uuid: "user-123", // later replace with logged-in user's uuid
+            latitude: coord.latitude,
+            longitude: coord.longitude,
+            name: item.name ?? "Unnamed Place",
+            emoji: "📍"
+        )
+        
+        self.pendingPlace = newPlace
+        self.region = MKCoordinateRegion(
+            center: coord,
+            span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+        )
+        self.showSavePlaceSheet = true
     }
+    
+    func startEditingPlace(_ place: Place) {
+        editingPlace = place
+        editPlaceName = place.name
+        selectedEmoji = place.emoji
+        showEditPlaceSheet = true
+    }
+
+    func saveEditedPlace() {
+        guard let editingPlace = editingPlace else { return }
+        
+        let updatedPlace = Place(
+            id: editingPlace.id,
+            uuid: editingPlace.uuid,
+            latitude: editingPlace.latitude,
+            longitude: editingPlace.longitude,
+            name: editPlaceName.isEmpty ? "Unnamed Place" : editPlaceName,
+            emoji: selectedEmoji
+        )
+        
+        // Find and replace the place in savedPlaces
+        if let index = savedPlaces.firstIndex(where: { $0.id == editingPlace.id }) {
+            savedPlaces[index] = updatedPlace
+        }
+        
+        // Clear editing state
+        self.editingPlace = nil
+        self.editPlaceName = ""
+        self.selectedEmoji = "📍"
+        self.showEditPlaceSheet = false
+    }
+
     
     // MARK: - Orbit Mechanism
     @Published var showOrbit: Bool = false

@@ -25,8 +25,7 @@ struct MapView: View {
                 Map(coordinateRegion: $viewModel.region,
                     showsUserLocation: true,
                     userTrackingMode: $trackingMode,
-                    annotationItems: viewModel.savedPlaces) { place in
-                    
+                    annotationItems: viewModel.savedPlaces + (viewModel.pendingPlace.map { [$0] } ?? [])) { place in
                     MapAnnotation(coordinate: place.coordinate) {
                         ZStack {
                             Circle()
@@ -41,6 +40,7 @@ struct MapView: View {
                         .shadow(radius: 4)
                     }
                 }
+
                 .edgesIgnoringSafeArea(.all)
                 
                 
@@ -60,17 +60,14 @@ struct MapView: View {
                         .padding(.top, 17)
                     }
                     
+                    // Replace your search results section with this:
+
                     if !viewModel.searchResults.isEmpty {
                         ScrollView {
                             VStack(spacing: 0) {
                                 ForEach(viewModel.searchResults, id: \.self) { item in
                                     Button(action: {
-                                        if let coord = item.placemark.location?.coordinate {
-                                            viewModel.region = MKCoordinateRegion(
-                                                center: coord,
-                                                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-                                            )
-                                        }
+                                        viewModel.selectSearchResult(item)
                                         viewModel.searchResults = []
                                     }) {
                                         VStack(alignment: .leading, spacing: 4) {
@@ -81,14 +78,15 @@ struct MapView: View {
                                                 .font(.subheadline)
                                                 .foregroundColor(.gray)
                                         }
+                                        .frame(maxWidth: .infinity, alignment: .leading) // Make it fill the width
                                         .padding()
                                         .background(Color.white)
                                         .cornerRadius(12)
-                                        .padding(.horizontal, 30)
                                         .padding(.vertical, 2)
                                     }
                                 }
                             }
+                            .padding(.horizontal) // Same padding as the search bar
                         }
                         .frame(maxHeight: 200)
                         .padding(.top, 10)
@@ -104,7 +102,7 @@ struct MapView: View {
                                 withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                                     viewModel.toggleOrbit()
                                 }
-                            }) { 
+                            }) {
                                 Image(systemName: "bookmark.fill")
                                     .resizable()
                                     .scaledToFit()
@@ -199,7 +197,7 @@ struct MapView: View {
                             }
                             dismissSearch()
                         },
-                        onSubmit: { // 👈 wire in parent logic
+                        onSubmit: {
                             viewModel.searchPlaces()
                             dismissSearch()
                         }
@@ -209,8 +207,62 @@ struct MapView: View {
                 }
 
 
-
-
+                if viewModel.showSavePlaceSheet, let pending = viewModel.pendingPlace {
+                    VStack {
+                        Spacer()
+                        
+                        VStack(spacing: 10) {
+                            HStack {
+                                Text("Save this place?")
+                                    .font(.title2)
+                                    .fontWeight(.medium)
+                                Spacer()
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.top, 20)
+                                
+                            HStack {
+                                Button("Cancel") {
+                                    viewModel.pendingPlace = nil
+                                    viewModel.showSavePlaceSheet = false
+                                }
+                                .foregroundColor(.red)
+                                .padding(.vertical, 15)
+                                .padding(.horizontal, 40)
+                                .background(.white)
+                                .fontWeight(.medium)
+                                .shadow(radius: 5)
+                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                    
+                                Spacer()
+                                    
+                                Button("Save") {
+                                    viewModel.addPlace(pending)
+                                    viewModel.pendingPlace = nil
+                                    viewModel.showSavePlaceSheet = false
+                                }
+                                .padding(.vertical, 15)
+                                .padding(.horizontal, 50)
+                                .background(Color(hex: "005DAD"))
+                                .foregroundColor(.white)
+                                .fontWeight(.medium)
+                                .shadow(radius: 5)
+                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                            }
+                            .padding(.horizontal)
+                            .padding(.top, 10)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.bottom, 20) // Add some padding from the very bottom
+                        .background(Color.white.opacity(0.6))
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(30) // Add corner radius for better floating appearance
+                        .padding(.horizontal, 16) // Add side margins
+                        .shadow(radius: 10) // Add shadow for floating effect
+                    }
+                    .transition(.move(edge: .bottom))
+                    .zIndex(2)
+                }
             }
         }
         .fullScreenCover(isPresented: $viewModel.showLocationPicker) {
