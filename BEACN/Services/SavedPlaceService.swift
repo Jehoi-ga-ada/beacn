@@ -25,18 +25,12 @@ struct SavedPlace: Codable {
     }
 }
 
-struct CreateSavedPlaceRequestAdd: Encodable {
-    let type: String
-    let name: String
-    let latitude: Double
-    let longitude: Double
-}
-
 struct CreateSavedPlaceRequest: Encodable {
     let type: String
     let name: String
     let latitude: Double
     let longitude: Double
+    let emoji: String
 }
 
 // MARK: - Service
@@ -55,14 +49,15 @@ final class SavedPlaceService: BaseService {
         return try await performRequest(request)
     }
 
-    func createSavedPlace(type: String, name: String, latitude: Double, longitude: Double) async throws -> SavedPlace {
+    func createSavedPlace(type: String, name: String, latitude: Double, longitude: Double, emoji: String) async throws -> SavedPlace {
         let body = try JSONEncoder().encode(CreateSavedPlaceRequest(
             type: type,
             name: name,
             latitude: latitude,
-            longitude: longitude
+            longitude: longitude,
+            emoji: emoji
         ))
-        let request = try await makeRequest(method: "POST", body: body)
+        let request = try await makeRequest(method: "POST", body: body, useUserAuth: true)
         return try await performRequest(request)
     }
 
