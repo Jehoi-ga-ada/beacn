@@ -104,7 +104,7 @@ struct MapView: View {
                                 withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                                     viewModel.toggleOrbit()
                                 }
-                            }) {
+                            }) { 
                                 Image(systemName: "bookmark.fill")
                                     .resizable()
                                     .scaledToFit()
