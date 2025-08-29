@@ -16,11 +16,10 @@ struct MapView: View {
     @StateObject var reportStore = ReportStore()
     @State private var selectedReport: Report?
 
-
-
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
+            //overlay map
             ZStack(alignment: .top) {
                 Map(coordinateRegion: $viewModel.region,
                     showsUserLocation: true,
@@ -40,10 +39,39 @@ struct MapView: View {
                         .shadow(radius: 4)
                     }
                 }
-
-                .edgesIgnoringSafeArea(.all)
+                .ignoresSafeArea()
                 
+                //custom header
+                if !isSearching {
+                    VStack{
+                        HStack {
+                            Button { } label: {
+                                Image(systemName: "person.fill")
+                                    .foregroundStyle(Color(hex: "005DAD"))
+                                    .font(.title2)
+                            }
+                            Spacer()
+                            Text("beacn")
+                                .font(.custom("LexendDeca-Regular", size: 22))
+                                .foregroundStyle(beaconGradient)
+                            Spacer()
+                            Button { } label: {
+                                Image(systemName: "tray.fill")
+                                    .foregroundStyle(Color(hex: "005DAD"))
+                                    .font(.title2)
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 12)
+                        .padding(.top, 60)
+                        .background(Color.white.opacity(0.85), in: RoundedRectangle(cornerRadius: 40))
+                        .frame(maxWidth: .infinity)
+                        .ignoresSafeArea(edges: .top)
+                        Spacer()
+                    }
+                }
                 
+                //content under header
                 VStack(spacing: 0) {
                     if !isSearching {
                         BeaconSearchBar(
@@ -60,7 +88,6 @@ struct MapView: View {
                         .padding(.top, 17)
                     }
                     
-                    // Replace your search results section with this:
 
                     if !viewModel.searchResults.isEmpty {
                         ScrollView {
@@ -93,6 +120,7 @@ struct MapView: View {
                     }
 
                 }
+                .padding(.top, 50)
                 
                 VStack {
                     Spacer()
@@ -117,7 +145,9 @@ struct MapView: View {
                             if viewModel.showOrbit {
                                 OrbitView(
                                     places: viewModel.savedPlaces,
-                                    onAdd: { print("Add tapped") },
+                                    onAdd: {
+                                        isSearching = true
+                                    },
                                     onSelect: { place in
                                         withAnimation {
                                             viewModel.region = MKCoordinateRegion(
@@ -150,7 +180,6 @@ struct MapView: View {
                         }
                         .sheet(isPresented: $viewModel.showReportSheet) {
                             if let selectedType = viewModel.selectedReportType {
-                                // Show subcategories if a category is selected
                                 SubcategorySheetView(
                                     type: selectedType,
                                     onBack: { viewModel.selectedReportType = nil },
@@ -159,7 +188,6 @@ struct MapView: View {
                                         viewModel.showReportSheet = false
                                         viewModel.selectedSubcategory = sub
                                         
-                                        // Show location picker
                                         if let current = viewModel.region.center as CLLocationCoordinate2D? {
                                             viewModel.showLocationPicker = true
                                         }
@@ -168,7 +196,6 @@ struct MapView: View {
 
                                 .presentationDetents([.medium])
                             } else {
-                                // Show main categories first
                                 ReportSheetView { type in
                                     viewModel.selectedReportType = type
                                 }
@@ -256,7 +283,7 @@ struct MapView: View {
                         .padding(.bottom, 20) // Add some padding from the very bottom
                         .background(Color.white.opacity(0.6))
                         .background(.ultraThinMaterial)
-                        .cornerRadius(30) // Add corner radius for better floating appearance
+                        .cornerRadius(30)
                         .padding(.horizontal, 16) // Add side margins
                         .shadow(radius: 10) // Add shadow for floating effect
                     }
@@ -278,7 +305,6 @@ struct MapView: View {
                 // TODO: Save report with coord + selectedSubcategory
             }
         }
-
     }
     
     private func dismissSearch() {
@@ -385,8 +411,8 @@ struct SearchOverlayView: View {
                                     ItemRow(title: recent.name, icon: "magnifyingglass")
                                         .foregroundColor(.white)
                                         .onTapGesture {
-                                            query = recent.name              // 1. autofill
-                                            onRecentSelected(recent)         // 2. pass event up
+                                            query = recent.name
+                                            onRecentSelected(recent)
                                         }
                                 }
 

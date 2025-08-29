@@ -4,5 +4,11 @@
 <dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>We need your location to show nearby alerts and hazards.</string>
+	<key>UIAppFonts</key>
+	<array>
+		<string>LexendDeca-Regular.ttf</string>
+	</array>
+	<key>CFBundleIdentifier</key>
+	<string></string>
 </dict>
 </plist>
