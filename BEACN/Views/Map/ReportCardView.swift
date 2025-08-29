@@ -10,7 +10,7 @@ import SwiftUI
 import MapKit
 
 struct ReportCardView: View {
-    let report: Report
+    let report: ReportView
     var onUpvote: () -> Void
     
     var body: some View {
@@ -62,7 +62,7 @@ struct ReportCardView: View {
 
 #Preview {
     ReportCardView(
-        report: Report(
+        report: ReportView(
             category: "Road Problems",
             emoji: "🚧",
             timestamp: Date(),
