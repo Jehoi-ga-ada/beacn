@@ -18,7 +18,7 @@ class MapVM: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     
     @Published var region = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: -6.2088, longitude: 106.8456), // fallback: Jakarta
+        center: CLLocationCoordinate2D(latitude: -6.2088, longitude: 106.8456),
         span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
     )
     

@@ -8,7 +8,7 @@
 import SwiftUI
 
 final class AppCoordinator: ObservableObject {
-    @Published var currentView: AppView = .map
+    @Published var currentView: AppView = .onboarding
     
     func start() -> some View {
         switch currentView {
