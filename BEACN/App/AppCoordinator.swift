@@ -8,7 +8,7 @@
 import SwiftUI
 
 final class AppCoordinator: ObservableObject {
-    @Published var currentView: AppView = .onboarding
+    @Published var currentView: AppView = .sampleLogin
     
     func start() -> some View {
         switch currentView {
@@ -18,11 +18,13 @@ final class AppCoordinator: ObservableObject {
             return AnyView(MapView(viewModel: MapVM(coordinator: self)))
         case .notifications:
             return AnyView(NotificationListView(viewModel: NotificationVM(coordinator: self)))
+        case .sampleLogin:
+            return AnyView(SampleLoginView())
         }
     }
 }
 
 enum AppView {
-    case onboarding, map, notifications
+    case onboarding, map, notifications, sampleLogin
 }
 
