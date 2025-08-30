@@ -45,7 +45,7 @@ struct MapView: View {
                 if !isSearching {
                     VStack{
                         HStack {
-                            Button { } label: {
+                            NavigationLink(destination: MyProfileView()){
                                 Image(systemName: "person.fill")
                                     .foregroundStyle(Color(hex: "005DAD"))
                                     .font(.title2)

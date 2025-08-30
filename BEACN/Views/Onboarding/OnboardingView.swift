@@ -107,6 +107,7 @@ struct OnboardingView: View {
                 .ignoresSafeArea(edges: .bottom)
             }
         }
+        .preferredColorScheme(.light)
     }
 }
 
