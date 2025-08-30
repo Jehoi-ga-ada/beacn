@@ -220,6 +220,10 @@ struct MapView: View {
                                             searchFieldFocused = false
                                         }
                                     },
+                                    onLongPress: { place in
+                                        viewModel.placeToDelete = place
+                                        viewModel.showDeletePlaceAlert = true
+                                    },
                                     radius: 90
                                 )
                                 .offset(x: 0, y: -5)
@@ -431,6 +435,59 @@ struct MapView: View {
                     )
                     .zIndex(3)
                 }
+                // Delete place confirmation
+                if viewModel.showDeletePlaceAlert, let placeToDelete = viewModel.placeToDelete {
+                    VStack {
+                        Spacer()
+                        
+                        VStack(spacing: 20) {
+                            // Place info section
+                            HStack(spacing: 12) {
+                                Text(placeToDelete.emoji)
+                                    .font(.system(size: 32))
+                                
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Saved Place")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                    Text(placeToDelete.name)
+                                        .font(.title2)
+                                        .fontWeight(.medium)
+                                }
+                                
+                                Spacer()
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.top, 20)
+                            
+                            // Delete button
+                            Button("Remove from Saved Places") {
+                                viewModel.deletePlace(placeToDelete)
+                            }
+                            .foregroundColor(.secondary)
+                            .padding(.vertical, 16)
+                            .frame(maxWidth: .infinity)
+                            .background(Color.gray.opacity(0.1))
+                            .clipShape(RoundedRectangle(cornerRadius: 20))
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 20)
+                        }
+                        .background(Color.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 35))
+                        .padding(.horizontal, 20)
+                        .shadow(radius: 10, y: 5)
+                    }
+                    .background(
+                        Color.black.opacity(0.3)
+                            .ignoresSafeArea()
+                            .onTapGesture {
+                                viewModel.showDeletePlaceAlert = false
+                                viewModel.placeToDelete = nil
+                            }
+                    )
+                    .transition(.move(edge: .bottom))
+                    .zIndex(4)
+                }
             }
         }
         .fullScreenCover(isPresented: $viewModel.showLocationPicker) {
@@ -476,6 +533,7 @@ struct OrbitView: View {
     let places: [Place]
     let onAdd: () -> Void
     let onSelect: (Place) -> Void
+    let onLongPress: (Place) -> Void
     let radius: CGFloat
     
     var body: some View {
@@ -496,6 +554,10 @@ struct OrbitView: View {
                             .padding(10)
                             .background(Circle().fill(Color.white))
                             .shadow(radius: 4)
+                    }
+                    .onLongPressGesture(minimumDuration: 0.5, maximumDistance: 10) {
+                        print("long press") //tacky gesture
+                        onLongPress(places[index])
                     }
                     .offset(x: cos(angle) * radius,
                             y: -sin(angle) * radius)

@@ -47,6 +47,8 @@ class MapVM: ObservableObject {
     @Published var editPlaceName: String = ""
     @Published var selectedEmoji: String = "📍"
     @Published var showMaxPlacesAlert = false
+    @Published var showDeletePlaceAlert = false
+    @Published var placeToDelete: Place? = nil
     
     func fetchSavedPlaces() {
         Task {
@@ -170,8 +172,23 @@ class MapVM: ObservableObject {
             }
         }
     }
-
-
+    
+    func deletePlace(_ place: Place) {
+        Task {
+            do {
+                let success = try await savedPlaceService.deleteSavedPlace(id: place.id)
+                if success {
+                    DispatchQueue.main.async {
+                        self.savedPlaces.removeAll { $0.id == place.id }
+                        self.showDeletePlaceAlert = false
+                        self.placeToDelete = nil
+                    }
+                }
+            } catch {
+                print("⌐ Failed to delete place:", error)
+            }
+        }
+    }
     
     func searchPlaces() {
         let request = MKLocalSearch.Request()
