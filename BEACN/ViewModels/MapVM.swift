@@ -37,13 +37,11 @@ class MapVM: ObservableObject {
     @Published var showReportSheet: Bool = false
     @Published var selectedReportType: ReportType? = nil
     @Published var selectedSubcategory: ReportSubcategory? = nil
-    
     @Published var showLocationPicker: Bool = false
-    
-
+    @Published var selectedReport: Report? = nil
+    @Published var showReportCard: Bool = false
     @Published var pendingPlace: Place? = nil
     @Published var showSavePlaceSheet: Bool = false
-    
     @Published var showEditPlaceSheet: Bool = false
     @Published var editingPlace: Place? = nil
     @Published var editPlaceName: String = ""

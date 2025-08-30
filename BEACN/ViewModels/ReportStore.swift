@@ -49,6 +49,10 @@ class ReportStore: ObservableObject {
             let fetched = try await service.getAllReports()
             self.reports = fetched
             print("✅ Loaded \(fetched.count) reports")
+            // In your ReportStore.fetchAllReports() method, add:
+            for (index, report) in fetched.enumerated() {
+                print("Report \(index): lat=\(report.latitude ?? 0), lng=\(report.longitude ?? 0), category=\(report.categories.category)")
+            }
         } catch {
             print("❌ Failed to fetch reports:", error)
         }

@@ -14,7 +14,7 @@ struct MapView: View {
     @State private var isSearching: Bool = false
     @FocusState private var searchFieldFocused: Bool
     @StateObject var reportStore = ReportStore()
-    @State private var selectedReport: Report?
+//    @State private var selectedReport: Report?
     @State private var showingCamera = false
     @State private var capturedPhoto: UIImage?
     
@@ -70,7 +70,8 @@ struct MapView: View {
                         case .report(let report):
                             ReportPinView(emoji: report.emoji)
                                 .onTapGesture {
-                                    selectedReport = report
+                                    viewModel.selectedReport = report
+                                    viewModel.showReportCard = true
                                 }
                         }
                     }
@@ -121,6 +122,7 @@ struct MapView: View {
                             showsCancel: false,
                             onSubmit: {
                                 viewModel.searchPlaces()
+                                viewModel.searchQuery = ""
                                 dismissSearch()
                             }
                         )
@@ -397,6 +399,38 @@ struct MapView: View {
                     .padding(.horizontal, 30)
                     .padding(.vertical, 250)
                 }
+                if viewModel.showReportCard, let selectedReport = viewModel.selectedReport {
+                    VStack {
+                        Spacer()
+                        ReportCardView(
+                            report: selectedReport.toReportView(),
+                            onUpvote: {
+                                Task {
+                                    do {
+                                        let upvoteService = UpvoteService()
+                                        let response = try await upvoteService.toggleUpvote(reportId: selectedReport.id)
+                                        print("Upvote response: \(response)")
+                                        await reportStore.fetchAllReports()
+                                    } catch {
+                                        print("Failed to upvote: \(error)")
+                                    }
+                                }
+                            }
+                        )                    .transition(.move(edge: .bottom))
+                        .onTapGesture {
+                            // Dismiss when tapping outside
+                            viewModel.showReportCard = false
+                        }
+                    }
+                    .background(
+                        Color.black.opacity(0.3)
+                            .ignoresSafeArea()
+                            .onTapGesture {
+                                viewModel.showReportCard = false
+                            }
+                    )
+                    .zIndex(3)
+                }
             }
         }
         .fullScreenCover(isPresented: $viewModel.showLocationPicker) {
@@ -406,10 +440,13 @@ struct MapView: View {
             ) { coord in
                 print("User placed report at: \(coord.latitude), \(coord.longitude)")
                 Task {
-                    let response = try await viewModel.reportService.createReport(categoryName: viewModel.selectedSubcategory?.name ?? "Fallback", latitude: coord.latitude, longitude: coord.latitude)
+                    let response = try await viewModel.reportService.createReport(
+                        categoryName: viewModel.selectedSubcategory?.name ?? "Fallback",
+                        latitude: coord.latitude,
+                        longitude: coord.longitude
+                    )
                     print(response)
                 }
-                // TODO: Save report with coord + selectedSubcategory
             }
         }
         .fullScreenCover(isPresented: $showingCamera) {

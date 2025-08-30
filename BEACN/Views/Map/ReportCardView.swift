@@ -19,7 +19,7 @@ struct ReportCardView: View {
                 Text("\(report.emoji) \(report.category)")
                     .font(.headline)
                 Spacer()
-                Text(report.timestamp, style: .relative)
+                Text(report.timestamp, style: .date) //change styling here, .time/date
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
@@ -53,7 +53,7 @@ struct ReportCardView: View {
             .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .padding()
-        .background(.ultraThinMaterial)
+        .background(Color.white.opacity(0.9))
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .shadow(radius: 4)
         .padding(.horizontal)

@@ -5,6 +5,7 @@
 //  Created by Jessica Lynn on 27/08/25.
 //
 import SwiftUI
+import MapKit
 
 enum ReportType: String, CaseIterable, Identifiable {
     case road = "Road Problems"
@@ -169,5 +170,42 @@ extension Report {
             }
         }
         return "📍" // fallback if no match found
+    }
+}
+
+
+extension Report {
+    func toReportView() -> ReportView {
+        let timestamp: Date = {
+            guard let createdAtString = self.createdAt else { return Date() }
+            
+            // Try ISO8601 with fractional seconds first
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let date = formatter.date(from: createdAtString) {
+                return date
+            }
+            
+            // Fallback to standard ISO8601
+            formatter.formatOptions = [.withInternetDateTime]
+            if let date = formatter.date(from: createdAtString) {
+                return date
+            }
+            
+            print("⚠️ Failed to parse date string: '\(createdAtString)'")
+            return Date()
+        }()
+        
+        return ReportView(
+            category: self.categories.category,
+            emoji: self.emoji,
+            timestamp: timestamp,
+            reporter: "User",
+            upvotes: self.reportUpvoteCount?.first?.count ?? 0,
+            coordinate: CLLocationCoordinate2D(
+                latitude: self.latitude ?? 0,
+                longitude: self.longitude ?? 0
+            )
+        )
     }
 }
