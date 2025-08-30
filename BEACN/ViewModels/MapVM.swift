@@ -26,14 +26,7 @@ class MapVM: ObservableObject {
     @Published var searchResults: [MKMapItem] = []
     @Published var selectedPlace: Place?
     @Published var showPlacePinpoint: Bool = false
-    @Published var savedPlaces: [Place] = [
-        Place(id: 1, uuid: "user-123", latitude: -6.2088, longitude: 106.8456, name: "Home", emoji: "🏠"),
-        Place(id: 2, uuid: "user-123", latitude: -6.1214, longitude: 106.7741, name: "Campus", emoji: "🎓"),
-        Place(id: 3, uuid: "user-123", latitude: -6.1754, longitude: 106.8272, name: "Monas", emoji: "🗼"),
-//        Place(id: 4, uuid: "user-123", latitude: 37.7879, longitude: -122.4074,name: "Union Square", emoji: "📍")
-//        Place(id: 5, uuid: "user-123", latitude: 38.7879, longitude: -122.4074,name: "Whut", emoji: "📍")
-        //safe area adalah nambah dari 2 ke 3
-    ]
+    @Published var savedPlaces: [Place] = []
 
     @Published var recentSearches: [RecentSearch] = [
         RecentSearch(name: "Pondok Indah Residence"),
@@ -55,11 +48,24 @@ class MapVM: ObservableObject {
     @Published var editingPlace: Place? = nil
     @Published var editPlaceName: String = ""
     @Published var selectedEmoji: String = "📍"
+    
+    func fetchSavedPlaces() {
+        Task {
+            do {
+                let apiPlaces = try await savedPlaceService.getAllSavedPlaces()
+                DispatchQueue.main.async {
+                    self.savedPlaces = apiPlaces.map { $0.toPlace() }
+                }
+            } catch {
+                print("❌ Failed to fetch saved places:", error)
+            }
+        }
+    }
 
     func selectSearchResult(_ item: MKMapItem) {
         guard let coord = item.placemark.location?.coordinate else { return }
         let newPlace = Place(
-            id: Int.random(in: 1000...9999),
+            id: UUID().uuidString,
             uuid: "user-123", // later replace with logged-in user's uuid
             latitude: coord.latitude,
             longitude: coord.longitude,
@@ -94,12 +100,10 @@ class MapVM: ObservableObject {
             emoji: selectedEmoji
         )
         
-        // Find and replace the place in savedPlaces
         if let index = savedPlaces.firstIndex(where: { $0.id == editingPlace.id }) {
             savedPlaces[index] = updatedPlace
         }
         
-        // Clear editing state
         self.editingPlace = nil
         self.editPlaceName = ""
         self.selectedEmoji = "📍"
@@ -123,10 +127,9 @@ class MapVM: ObservableObject {
         self.coordinator = coordinator
         self.locationService = locationService
         
-        // 👇 Subscribe to location updates
         locationService.$currentLocation
             .compactMap { $0 }
-            .first() // only recenter once at app start
+            .first()
             .sink { [weak self] location in
                 self?.region = MKCoordinateRegion(
                     center: location.coordinate,
@@ -134,6 +137,7 @@ class MapVM: ObservableObject {
                 )
             }
             .store(in: &cancellables)
+        fetchSavedPlaces()
     }
     
     func toggleOrbit() {
@@ -143,8 +147,25 @@ class MapVM: ObservableObject {
     }
     
     func addPlace(_ place: Place) {
-        savedPlaces.append(place)
+        Task {
+            do {
+                let saved = try await savedPlaceService.createSavedPlace(
+                    type: "custom", // wasnt assigned anything
+                    name: place.name,
+                    latitude: place.latitude,
+                    longitude: place.longitude,
+                    emoji: place.emoji
+                )
+                DispatchQueue.main.async {
+                    self.savedPlaces.append(saved.toPlace())
+                }
+                fetchSavedPlaces()
+            } catch {
+                print("❌ Failed to save place:", error)
+            }
+        }
     }
+
     
     func searchPlaces() {
         let request = MKLocalSearch.Request()
@@ -180,5 +201,18 @@ class MapVM: ObservableObject {
                 )
             }
         }
+    }
+}
+
+extension SavedPlace {
+    func toPlace() -> Place {
+        Place(
+            id: id,
+            uuid: userId,
+            latitude: latitude,
+            longitude: longitude,
+            name: name,
+            emoji: emoji
+        )
     }
 }

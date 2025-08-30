@@ -104,7 +104,7 @@ struct MapView: View {
                                                 .font(.subheadline)
                                                 .foregroundColor(.gray)
                                         }
-                                        .frame(maxWidth: .infinity, alignment: .leading) // Make it fill the width
+                                        .frame(maxWidth: .infinity, alignment: .leading)
                                         .padding()
                                         .background(Color.white)
                                         .cornerRadius(12)
@@ -112,7 +112,7 @@ struct MapView: View {
                                     }
                                 }
                             }
-                            .padding(.horizontal) // Same padding as the search bar
+                            .padding(.horizontal)
                         }
                         .frame(maxHeight: 200)
                         .padding(.top, 10)
@@ -223,7 +223,6 @@ struct MapView: View {
                                             }
                                         }
                                     )
-
                                     .presentationDetents([.medium])
                                 } else {
                                     ReportSheetView { type in
@@ -239,39 +238,19 @@ struct MapView: View {
                             endPoint: .bottomTrailing
                         ))
                         .cornerRadius(50)
-                        
-
-
                     }
                     .padding(.horizontal, 20)
                 }
                 if isSearching {
                     SearchOverlayView(
+                        viewModel: viewModel,
                         isSearching: $isSearching,
                         searchFieldFocused: $searchFieldFocused,
-                        query: $viewModel.searchQuery,
-                        recentSearches: viewModel.recentSearches,
-                        savedPlaces: viewModel.savedPlaces,
-                        onRecentSelected: { recent in
-                            viewModel.searchQuery = recent.name
-                            viewModel.searchPlaces()
-                            dismissSearch()
-                        },
-                        onSavedPlaceSelected: { place in
-                            withAnimation {
-                                viewModel.focusOn(place)
-                            }
-                            dismissSearch()
-                        },
-                        onSubmit: {
-                            viewModel.searchPlaces()
-                            dismissSearch()
-                        }
+                        query: $viewModel.searchQuery
                     )
                     .transition(.move(edge: .top))
                     .zIndex(1)
                 }
-
 
                 if viewModel.showSavePlaceSheet, let pending = viewModel.pendingPlace {
                     VStack {
@@ -319,12 +298,12 @@ struct MapView: View {
                             .padding(.top, 10)
                         }
                         .padding(.horizontal, 10)
-                        .padding(.bottom, 20) // Add some padding from the very bottom
+                        .padding(.bottom, 20)
                         .background(Color.white.opacity(0.6))
                         .background(.ultraThinMaterial)
                         .cornerRadius(30)
-                        .padding(.horizontal, 16) // Add side margins
-                        .shadow(radius: 10) // Add shadow for floating effect
+                        .padding(.horizontal, 16)
+                        .shadow(radius: 10)
                     }
                     .transition(.move(edge: .bottom))
                     .zIndex(2)
@@ -354,8 +333,6 @@ struct MapView: View {
     }
 }
 
-
-
 struct OrbitView: View {
     let places: [Place]
     let onAdd: () -> Void
@@ -380,6 +357,9 @@ struct OrbitView: View {
                             .padding(10)
                             .background(Circle().fill(Color.white))
                             .shadow(radius: 4)
+                            .onAppear {
+                                print("[Orbit] \(places[index].name), emoji: \(places[index].emoji), ID: \(places[index].id)")
+                            }
                     }
                     .offset(x: cos(angle) * radius,
                             y: -sin(angle) * radius)
@@ -401,15 +381,10 @@ struct OrbitView: View {
 
 
 struct SearchOverlayView: View {
+    @ObservedObject var viewModel: MapVM
     @Binding var isSearching: Bool
     @FocusState<Bool>.Binding var searchFieldFocused: Bool
     @Binding var query: String
-    
-    var recentSearches: [RecentSearch]
-    var savedPlaces: [Place]
-    var onRecentSelected: (RecentSearch) -> Void
-    var onSavedPlaceSelected: (Place) -> Void
-    var onSubmit: (() -> Void)? = nil
     
     var body: some View {
         ZStack(alignment: .top) {
@@ -423,53 +398,42 @@ struct SearchOverlayView: View {
                     isSearching: $isSearching,
                     searchFieldFocused: $searchFieldFocused,
                     showsCancel: true,
-                    onCancel: {
-                        withAnimation {
-                            isSearching = false
-                            searchFieldFocused = false
-                        }
-                    },
-                    onSubmit: {
-                        onSubmit?()
-                    }
+                    onCancel: { dismissOverlay() },
+                    onSubmit: { viewModel.searchPlaces() }
                 )
                 .padding()
-
                 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
-                        
-                        // Recents Section
-                        if !recentSearches.isEmpty {
+                        if !viewModel.recentSearches.isEmpty {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Recents")
                                     .font(.headline)
                                     .foregroundColor(.gray)
                                 
-                                ForEach(recentSearches) { recent in
+                                ForEach(viewModel.recentSearches) { recent in
                                     ItemRow(title: recent.name, icon: "magnifyingglass")
                                         .foregroundColor(.white)
                                         .onTapGesture {
-                                            query = recent.name
-                                            onRecentSelected(recent)
+                                            viewModel.searchQuery = recent.name
+                                            viewModel.searchPlaces()
+                                            dismissOverlay()
                                         }
                                 }
-
                             }
                         }
                         
-                        // Saved Places Section
-                        if !savedPlaces.isEmpty {
+                        if !viewModel.savedPlaces.isEmpty {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Saved Places")
                                     .font(.headline)
                                     .foregroundColor(.gray)
                                 
-                                ForEach(savedPlaces) { place in
+                                ForEach(viewModel.savedPlaces) { place in
                                     ItemRow(title: place.name, emoji: place.emoji)
                                         .foregroundColor(.white)
                                         .onTapGesture {
-                                            onSavedPlaceSelected(place)
+                                            viewModel.focusOn(place)
                                             dismissOverlay()
                                         }
                                 }
@@ -478,7 +442,6 @@ struct SearchOverlayView: View {
                     }
                     .padding(.horizontal)
                 }
-                
                 Spacer()
             }
         }
@@ -492,8 +455,6 @@ struct SearchOverlayView: View {
         }
     }
 }
-
-
 
 struct ItemRow: View {
     var title: String

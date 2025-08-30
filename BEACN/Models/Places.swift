@@ -9,7 +9,7 @@ import Foundation
 import CoreLocation
 
 struct Place: Identifiable, Hashable {
-    let id: Int
+    let id: String
     let uuid: String
     let latitude: Double
     let longitude: Double
