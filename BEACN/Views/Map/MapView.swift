@@ -15,6 +15,9 @@ struct MapView: View {
     @FocusState private var searchFieldFocused: Bool
     @StateObject var reportStore = ReportStore()
     @State private var selectedReport: Report?
+    @State private var showingCamera = false
+    @State private var capturedPhoto: UIImage?
+
     
     var body: some View {
         NavigationStack {
@@ -186,7 +189,7 @@ struct MapView: View {
                         
                         Spacer()
                         HStack{
-                            Button(action: { viewModel.showReportSheet = true }) {
+                            Button(action: { showingCamera = true }) {
                                 Image(systemName: "camera.fill")
                                     .resizable()
                                     .scaledToFit()
@@ -323,6 +326,19 @@ struct MapView: View {
                 // TODO: Save report with coord + selectedSubcategory
             }
         }
+        .fullScreenCover(isPresented: $showingCamera) {
+            CameraCaptureView(
+                onPhotoCapture: { image in
+                    capturedPhoto = image
+                    print("📸 Captured photo from MapView")
+                },
+                onNavigateNext: {
+                    showingCamera = false
+                    print("➡️ Move to next step after camera (if needed)")
+                }
+            )
+        }
+
     }
     
     private func dismissSearch() {
