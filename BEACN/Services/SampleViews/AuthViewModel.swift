@@ -5,12 +5,6 @@
 //  Created by Jehoiada Wong on 28/08/25.
 //
 
-
-//
-//  AuthViewModel.swift
-//  YourApp
-//
-
 import Foundation
 import Supabase
 

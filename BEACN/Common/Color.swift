@@ -22,7 +22,13 @@ extension Color {
 
 let beaconGradient = RadialGradient(
     gradient: Gradient(colors: [Color(hex: "5091D3"), Color(hex: "005DAD")]),
-    center: .center,
+    center: .topTrailing,
     startRadius: 5,
-    endRadius: 50
+    endRadius: 100
+)
+let cameraGradient = RadialGradient(
+    gradient: Gradient(colors: [Color(hex: "FFBB73"), Color(hex: "FF8400")]),
+    center: .topTrailing,
+    startRadius: 5,
+    endRadius: 100
 )

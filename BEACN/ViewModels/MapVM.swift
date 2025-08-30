@@ -171,4 +171,14 @@ class MapVM: ObservableObject {
             span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
         )
     }
+    func centerOnUser() {
+        if let currentLocation = locationService.currentLocation {
+            withAnimation {
+                region = MKCoordinateRegion(
+                    center: currentLocation.coordinate,
+                    span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                )
+            }
+        }
+    }
 }

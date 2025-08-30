@@ -9,13 +9,12 @@ import SwiftUI
 import MapKit
 
 struct MapView: View {
-    @StateObject var viewModel: MapVM
+    @ObservedObject var viewModel: MapVM
     @State private var trackingMode: MapUserTrackingMode = .follow
     @State private var isSearching: Bool = false
     @FocusState private var searchFieldFocused: Bool
     @StateObject var reportStore = ReportStore()
     @State private var selectedReport: Report?
-
     
     var body: some View {
         NavigationStack {
@@ -61,7 +60,7 @@ struct MapView: View {
                                     .font(.title2)
                             }
                         }
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, 30)
                         .padding(.vertical, 12)
                         .padding(.top, 60)
                         .background(Color.white.opacity(0.85), in: RoundedRectangle(cornerRadius: 40))
@@ -124,6 +123,26 @@ struct MapView: View {
                 
                 VStack {
                     Spacer()
+                    HStack{
+                        Spacer()
+                        Button(action: {
+                            withAnimation {
+                                trackingMode = .follow
+                                viewModel.centerOnUser()
+                            }
+                        }) {
+                            Image(systemName: "location")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 22, height: 22)
+                                .padding(12)
+                                .foregroundColor(.black)
+                                .background(Color.white.opacity(0.75))
+                                .clipShape(RoundedRectangle(cornerRadius: 17))
+                                .shadow(radius: 3)
+                        }
+                    }
+                    .padding(.horizontal, 25)
                     HStack {
                         ZStack {
                             Button(action: {
@@ -166,42 +185,62 @@ struct MapView: View {
                         .frame(width: 100, height: 100)
                         
                         Spacer()
-                        
-                        Button(action: { viewModel.showReportSheet = true }) {
-                            Image(systemName: "megaphone.fill")
-                                .resizable()
-                                .scaledToFit()
-                                .padding(18)
-                                .foregroundStyle(Color.white)
-                                .frame(width: 70, height: 70)
-                                .background(beaconGradient)
-                                .clipShape(Circle())
-                                .shadow(radius: 4)
-                        }
-                        .sheet(isPresented: $viewModel.showReportSheet) {
-                            if let selectedType = viewModel.selectedReportType {
-                                SubcategorySheetView(
-                                    type: selectedType,
-                                    onBack: { viewModel.selectedReportType = nil },
-                                    onSelect: { sub in
-                                        viewModel.selectedReportType = nil
-                                        viewModel.showReportSheet = false
-                                        viewModel.selectedSubcategory = sub
-                                        
-                                        if let current = viewModel.region.center as CLLocationCoordinate2D? {
-                                            viewModel.showLocationPicker = true
+                        HStack{
+                            Button(action: { viewModel.showReportSheet = true }) {
+                                Image(systemName: "camera.fill")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .padding(18)
+                                    .foregroundStyle(Color.white)
+                                    .frame(width: 70, height: 70)
+                                    .background(cameraGradient)
+                                    .clipShape(Circle())
+                                    .shadow(radius: 4)
+                            }
+                            Button(action: { viewModel.showReportSheet = true }) {
+                                Image(systemName: "megaphone.fill")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .padding(18)
+                                    .foregroundStyle(Color.white)
+                                    .frame(width: 70, height: 70)
+                                    .background(beaconGradient)
+                                    .clipShape(Circle())
+                                    .shadow(radius: 4)
+                            }
+                            .sheet(isPresented: $viewModel.showReportSheet) {
+                                if let selectedType = viewModel.selectedReportType {
+                                    SubcategorySheetView(
+                                        type: selectedType,
+                                        onBack: { viewModel.selectedReportType = nil },
+                                        onSelect: { sub in
+                                            viewModel.selectedReportType = nil
+                                            viewModel.showReportSheet = false
+                                            viewModel.selectedSubcategory = sub
+                                            
+                                            if let current = viewModel.region.center as CLLocationCoordinate2D? {
+                                                viewModel.showLocationPicker = true
+                                            }
                                         }
-                                    }
-                                )
+                                    )
 
-                                .presentationDetents([.medium])
-                            } else {
-                                ReportSheetView { type in
-                                    viewModel.selectedReportType = type
+                                    .presentationDetents([.medium])
+                                } else {
+                                    ReportSheetView { type in
+                                        viewModel.selectedReportType = type
+                                    }
+                                    .presentationDetents([.medium])
                                 }
-                                .presentationDetents([.medium])
                             }
                         }
+                        .background(LinearGradient(
+                            gradient: Gradient(colors: [Color(hex: "FF8300"), Color(hex: "2877C0")]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ))
+                        .cornerRadius(50)
+                        
+
 
                     }
                     .padding(.horizontal, 20)
@@ -488,3 +527,6 @@ struct RecentSearch: Identifiable {
     // Add other relevant data like coordinates if needed
 }
 
+#Preview {
+    MapView(viewModel: MapVM(coordinator: AppCoordinator()))
+}
