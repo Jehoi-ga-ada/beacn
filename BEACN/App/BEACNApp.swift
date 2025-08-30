@@ -23,21 +23,26 @@ struct BEACNApp: App {
 //        }
 //    }()
     
-    init() {
-        Task {
-            let authService = AuthService()
-            do {
-                _ = try await authService.signIn(email: "sayajehoiada@gmail.com", password: "Jehoiada1509!")
-            } catch {
-                print("Login failed")
-            }
-        }
-    }
+//    init() {
+//        Task {
+//            let authService = AuthService()
+//            do {
+//                _ = try await authService.signIn(email: "sayajehoiada@gmail.com", password: "Jehoiada1509!")
+//            } catch {
+//                print("Login failed")
+//            }
+//        }
+//    }
     
+    @StateObject private var authVM = AuthViewModel()
     @StateObject private var appCoordinator = AppCoordinator()
     var body: some Scene {
         WindowGroup {
             appCoordinator.start()
+                .environmentObject(authVM)
+                .onAppear {
+                    appCoordinator.setAuthVM(authVM)
+                }
         }
     }
 }

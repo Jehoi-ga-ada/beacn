@@ -9,7 +9,7 @@ import SwiftUI
 import Foundation
 
 struct OnboardingView: View {
-    @StateObject var viewModel: OnboardingVM
+    @EnvironmentObject private var vm: AuthViewModel
 
     var body: some View {
         ZStack {
@@ -17,15 +17,15 @@ struct OnboardingView: View {
                 .ignoresSafeArea()
             
             VStack{
-                Image("beacn")
+                Image("logo_beacn")
                     .resizable()
-                    .frame(width: 150, height: 150)
-                    .padding()
+                    .frame(width: 140, height: 140)
+                    .padding(.top, 15)
                 
                 Text("beacn")
                     .font(.custom("LexendDeca-Regular", size: 20))
                     .foregroundColor(.white)
-                    .padding(.bottom, 10)
+                    .padding(.bottom, 55)
                 ZStack{
                     HStack{
                         Rectangle()
@@ -37,19 +37,70 @@ struct OnboardingView: View {
                         Rectangle()
                             .fill(Color.white)
                             .padding(.top, 250)
-                        RoundedRectangle(cornerRadius: 180)
+                        RoundedRectangle(cornerRadius: 150)
                             .fill(Color.white)
                     }
-                    VStack{
+                    VStack(spacing: 15){
                         Text("Login")
-                            .font(.title3)
+                            .font(.title2)
                             .fontWeight(.medium)
-                            .padding(.bottom, 50)
-                        Text("Email")
-                        Text("Password")
-                        Button("Login"){
-                            
+                            .padding(.bottom, 30)
+                        VStack(alignment: .leading){
+                            Text("Email")
+                                .font(.footnote)
+                                .fontWeight(.medium)
+                            TextField("Your email", text: $vm.email)
+                                .textInputAutocapitalization(.never)
+                                .disableAutocorrection(true)
+                                .onSubmit {
+                                    
+                                }
+                                .padding(.all, 8)
+                                .padding(.horizontal, 15)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 15)
+                                        .stroke(style: StrokeStyle(lineWidth: 1))
+                                        .foregroundStyle(.gray)
+                                )
                         }
+                        .padding(.horizontal, 35)
+                        VStack(alignment: .leading) {
+                            Text("Password")
+                                .font(.footnote)
+                                .fontWeight(.medium)
+                            SecureField("", text: $vm.password)
+                                .padding(.all, 8)
+                                .padding(.horizontal, 15)
+                                .overlay(RoundedRectangle(cornerRadius: 15).stroke(style: StrokeStyle(lineWidth: 1))
+                                    .foregroundStyle(.gray))
+                        }
+                        .padding(.horizontal, 35)
+                        
+                        if let errorMessage = vm.errorMessage {
+                            Text("We couldn’t sign you in. Please ensure your username and password are correct.")
+                                .font(.caption)
+                                .padding(.horizontal, 40)
+                                .foregroundColor(Color(hex: "005DAD"))
+                        }
+                        
+                        VStack {
+                            Button("Login") {
+                                print("tapped")
+                                Task { await vm.signIn() }
+                            }
+                            .padding(.vertical, 13)
+                            .padding(.horizontal, 145)
+                            .background(Color(hex: "005DAD"))
+                            .foregroundColor(.white)
+                            .fontWeight(.medium)
+                            .shadow(radius: 5)
+                            .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
+                            Spacer()
+                            Text("Don't have an account? Sign up")
+                                .font(.body)
+                                .foregroundColor(.gray)
+                        }
+                        .frame(height: 200)
                      
                     }
                 }
@@ -60,5 +111,5 @@ struct OnboardingView: View {
 }
 
 #Preview {
-    OnboardingView(viewModel: OnboardingVM(coordinator: AppCoordinator()))
+    OnboardingView()
 }
