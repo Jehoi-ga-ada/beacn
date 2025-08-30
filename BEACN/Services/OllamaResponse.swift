@@ -1,8 +1,24 @@
+//
+//  OllamaResponse.swift
+//  BEACN
+//
+//  Created by Jehoiada Wong on 30/08/25.
+//
+
 import Foundation
 import UIKit
 
-struct OllamaResponse: Decodable {
+// Structure for the actual disaster response we want
+struct DisasterResponse: Decodable {
     let disaster: String
+}
+
+// Structure for Ollama's complete response
+struct OllamaResponse: Decodable {
+    let model: String?
+    let response: String
+    let done: Bool
+    let created_at: String?
 }
 
 final class OllamaService {
@@ -58,19 +74,47 @@ final class OllamaService {
 
         let (data, _) = try await URLSession.shared.data(for: request)
 
-        // Try to decode structured response
-        if let decoded = try? JSONDecoder().decode(OllamaResponse.self, from: data) {
-            return decoded.disaster
+        // Debug: Print the raw response
+        if let rawResponse = String(data: data, encoding: .utf8) {
+            print("🔍 Raw Ollama Response: \(rawResponse)")
         }
 
-        // Fallback: handle raw string that might be JSON text
-        if let text = String(data: data, encoding: .utf8),
-           let jsonData = text.data(using: .utf8),
-           let decoded = try? JSONDecoder().decode(OllamaResponse.self, from: jsonData) {
-            return decoded.disaster
+        // Try to decode as Ollama's complete response structure
+        if let ollamaResponse = try? JSONDecoder().decode(OllamaResponse.self, from: data) {
+            print("📦 Ollama Response Object: \(ollamaResponse.response)")
+            
+            // Parse the nested JSON response
+            if let responseData = ollamaResponse.response.data(using: .utf8),
+               let disasterResponse = try? JSONDecoder().decode(DisasterResponse.self, from: responseData) {
+                return disasterResponse.disaster
+            }
+            
+            // If JSON parsing fails, try to extract from string manually
+            return extractDisasterFromString(ollamaResponse.response)
         }
 
-        // If all fails, return raw text
-        return String(data: data, encoding: .utf8) ?? "Unknown"
+        // Fallback: Try direct JSON decode (in case Ollama returns plain JSON)
+        if let disasterResponse = try? JSONDecoder().decode(DisasterResponse.self, from: data) {
+            return disasterResponse.disaster
+        }
+
+        // Last resort: return raw text
+        let rawText = String(data: data, encoding: .utf8) ?? "Unknown"
+        print("⚠️ Falling back to raw text: \(rawText)")
+        return extractDisasterFromString(rawText)
+    }
+    
+    private func extractDisasterFromString(_ text: String) -> String {
+        // Try to extract disaster value from JSON-like string
+        if let range = text.range(of: "\"disaster\"\\s*:\\s*\"([^\"]+)\"", options: .regularExpression) {
+            let match = String(text[range])
+            if let valueRange = match.range(of: "\"([^\"]+)\"$", options: .regularExpression) {
+                let value = String(match[valueRange])
+                return value.replacingOccurrences(of: "\"", with: "")
+            }
+        }
+        
+        // If regex fails, return the whole text (your current behavior)
+        return text
     }
 }
