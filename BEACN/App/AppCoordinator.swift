@@ -45,8 +45,6 @@ final class AppCoordinator: ObservableObject {
             return AnyView(MapView(viewModel: MapVM(coordinator: self)))
         case .notifications:
             return AnyView(NotificationListView(viewModel: NotificationVM(coordinator: self)))
-        case .sampleLogin:
-            return AnyView(SampleLoginView())
         }
     }
     
@@ -73,5 +71,5 @@ final class AppCoordinator: ObservableObject {
 }
 
 enum AppView {
-    case onboarding, map, notifications, sampleLogin
+    case onboarding, map, notifications
 }

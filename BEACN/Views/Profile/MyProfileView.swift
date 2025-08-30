@@ -10,6 +10,7 @@ import Foundation
 
 struct MyProfileView: View {
     @StateObject var vm: MyProfileViewModel = MyProfileViewModel()
+    @EnvironmentObject var coordinator: AppCoordinator
     @Environment(\.dismiss) var dismiss
     
     var body: some View {
@@ -101,7 +102,7 @@ struct MyProfileView: View {
                     // Log Out Button
                     Button(action: {
                         Task {
-                            try await vm.authService.signOut()
+                            try await coordinator.signOut()
                         }
                     }) {
                         HStack {

@@ -49,6 +49,8 @@ final class AuthViewModel: ObservableObject {
         do {
             try await authService.signOut()
             self.session = nil
+            self.email = ""
+            self.password = ""
         } catch {
             self.errorMessage = error.localizedDescription
         }

@@ -35,13 +35,14 @@ struct BEACNApp: App {
 //    }
     
     @StateObject private var authVM = AuthViewModel()
-    @StateObject private var appCoordinator = AppCoordinator()
+    @StateObject private var coordinator = AppCoordinator()
     var body: some Scene {
         WindowGroup {
-            appCoordinator.start()
+            coordinator.start()
+                .environmentObject(coordinator)
                 .environmentObject(authVM)
                 .onAppear {
-                    appCoordinator.setAuthVM(authVM)
+                    coordinator.setAuthVM(authVM)
                 }
         }
     }
