@@ -17,31 +17,69 @@ struct MapView: View {
     @State private var selectedReport: Report?
     @State private var showingCamera = false
     @State private var capturedPhoto: UIImage?
+    
+    var annotations: [MapAnnotationItem] {
+        let placeItems = viewModel.savedPlaces.map {
+            MapAnnotationItem(coordinate: $0.coordinate, type: .place($0))
+        }
+        
+        let pendingItems = viewModel.pendingPlace.map {
+            [MapAnnotationItem(coordinate: $0.coordinate, type: .place($0))]
+        } ?? []
+        
+        let reportItems = reportStore.reports.compactMap { report in
+            if let lat = report.latitude, let lng = report.longitude {
+                return MapAnnotationItem(
+                    coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lng),
+                    type: .report(report)
+                )
+            }
+            return nil
+        }
+        
+        return placeItems + pendingItems + reportItems
+    }
+
 
     
     var body: some View {
         NavigationStack {
             //overlay map
             ZStack(alignment: .top) {
-                Map(coordinateRegion: $viewModel.region,
+                Map(
+                    coordinateRegion: $viewModel.region,
                     showsUserLocation: true,
                     userTrackingMode: $trackingMode,
-                    annotationItems: viewModel.savedPlaces + (viewModel.pendingPlace.map { [$0] } ?? [])) { place in
-                    MapAnnotation(coordinate: place.coordinate) {
-                        ZStack {
-                            Circle()
-                                .fill(Color.white)
-                                .frame(width: 40, height: 40)
-                            Circle()
-                                .fill(beaconGradient)
-                                .frame(width: 36, height: 36)
-                            Text(place.emoji)
-                                .font(.title2)
+                    annotationItems: annotations
+                ) { item in
+                    MapAnnotation(coordinate: item.coordinate) {
+                        switch item.type {
+                        case .place(let place):
+                            ZStack {
+                                Circle()
+                                    .fill(Color.white)
+                                    .frame(width: 40, height: 40)
+                                Circle()
+                                    .fill(beaconGradient)
+                                    .frame(width: 36, height: 36)
+                                Text(place.emoji)
+                                    .font(.title2)
+                            }
+                            .shadow(radius: 4)
+
+                        case .report(let report):
+                            ReportPinView(emoji: report.emoji)
+                                .onTapGesture {
+                                    selectedReport = report
+                                }
                         }
-                        .shadow(radius: 4)
                     }
                 }
+
                 .ignoresSafeArea()
+                .task {
+                    await reportStore.fetchAllReports()
+                }
                 
                 //custom header
                 if !isSearching {
@@ -373,9 +411,6 @@ struct OrbitView: View {
                             .padding(10)
                             .background(Circle().fill(Color.white))
                             .shadow(radius: 4)
-                            .onAppear {
-                                print("[Orbit] \(places[index].name), emoji: \(places[index].emoji), ID: \(places[index].id)")
-                            }
                     }
                     .offset(x: cos(angle) * radius,
                             y: -sin(angle) * radius)
@@ -503,6 +538,18 @@ struct RecentSearch: Identifiable {
     let name: String
     // Add other relevant data like coordinates if needed
 }
+
+struct MapAnnotationItem: Identifiable {
+    let id = UUID()
+    let coordinate: CLLocationCoordinate2D
+    let type: AnnotationType
+    
+    enum AnnotationType {
+        case place(Place)
+        case report(Report)
+    }
+}
+
 
 #Preview {
     MapView(viewModel: MapVM(coordinator: AppCoordinator()))

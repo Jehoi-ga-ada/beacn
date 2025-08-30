@@ -6,33 +6,51 @@
 //
 
 
+//import Foundation
+//import CoreLocation
+//
+//@MainActor
+//class ReportStore: ObservableObject {
+//    private let reportService: ReportService
+//    
+//    @Published var reports: [Report] = []
+//    @Published var error: Error? = nil
+//    @Published var isLoading: Bool = false
+//    
+//    init(reportService: ReportService = ReportService()) {
+//        self.reportService = reportService
+//    }
+//    
+//    /// Loads reports asynchronously
+//    func loadReports() async {
+//        isLoading = true
+//        defer { isLoading = false }
+//        
+//        do {
+//            let fetchedReports = try await reportService.getAllReports()
+//            self.reports = fetchedReports
+//            self.error = nil
+//        } catch {
+//            self.reports = []
+//            self.error = error
+//        }
+//    }
+//}
+
 import Foundation
-import CoreLocation
 
 @MainActor
 class ReportStore: ObservableObject {
-    private let reportService: ReportService
-    
     @Published var reports: [Report] = []
-    @Published var error: Error? = nil
-    @Published var isLoading: Bool = false
+    private let service = ReportService()
     
-    init(reportService: ReportService = ReportService()) {
-        self.reportService = reportService
-    }
-    
-    /// Loads reports asynchronously
-    func loadReports() async {
-        isLoading = true
-        defer { isLoading = false }
-        
+    func fetchAllReports() async {
         do {
-            let fetchedReports = try await reportService.getAllReports()
-            self.reports = fetchedReports
-            self.error = nil
+            let fetched = try await service.getAllReports()
+            self.reports = fetched
+            print("✅ Loaded \(fetched.count) reports")
         } catch {
-            self.reports = []
-            self.error = error
+            print("❌ Failed to fetch reports:", error)
         }
     }
 }

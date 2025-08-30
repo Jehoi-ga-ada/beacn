@@ -158,3 +158,16 @@ final class ReportService: BaseService {
         return response.message.lowercased().contains("deleted")
     }
 }
+
+extension Report {
+    var emoji: String {
+        let subcategoryName = categories.category // this is the "Flood", "Traffic jam", etc.
+        
+        for type in ReportType.allCases {
+            if let match = type.subcategories.first(where: { $0.name == subcategoryName }) {
+                return match.emoji
+            }
+        }
+        return "📍" // fallback if no match found
+    }
+}
