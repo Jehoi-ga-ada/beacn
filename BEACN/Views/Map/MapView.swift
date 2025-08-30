@@ -349,6 +349,54 @@ struct MapView: View {
                     .transition(.move(edge: .bottom))
                     .zIndex(2)
                 }
+                if viewModel.showMaxPlacesAlert {
+                    Color.black.opacity(0.4)
+                        .ignoresSafeArea(.all)
+                        .onTapGesture {
+                            withAnimation {
+                                viewModel.showMaxPlacesAlert = false
+                            }
+                        }
+                    
+                    ZStack{
+                        RoundedRectangle(cornerRadius: 30)
+                            .fill(Color.white)
+                        VStack(alignment: .center, spacing: 10) {
+                            Text("You’ve reached maximum slots of saved places on Free Plan.")
+                                .font(.title3)
+                                .fontWeight(.medium)
+                                .padding(.horizontal, 23)
+                            
+                            VStack {
+                                Button("No thanks") {
+                                    viewModel.showMaxPlacesAlert = false
+                                }
+                                .foregroundColor(.gray)
+                                .padding(.vertical, 15)
+                                .padding(.horizontal, 40)
+                                .background(.white)
+                                .fontWeight(.medium)
+                                .shadow(radius: 5)
+                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                                                
+                                Button("Upgrade") {
+                                    
+                                }
+                                .padding(.vertical, 15)
+                                .padding(.horizontal, 60)
+                                .background(Color(hex: "005DAD"))
+                                .foregroundColor(.white)
+                                .fontWeight(.medium)
+                                .shadow(radius: 5)
+                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                            }
+                            .padding(.horizontal)
+                            .padding(.top, 10)
+                        }
+                    }
+                    .padding(.horizontal, 30)
+                    .padding(.vertical, 250)
+                }
             }
         }
         .fullScreenCover(isPresented: $viewModel.showLocationPicker) {

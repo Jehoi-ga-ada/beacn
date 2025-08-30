@@ -32,6 +32,7 @@ struct BeaconSearchBar: View {
                 .padding(.vertical, 8)
                 .onSubmit {
                     onSubmit?()   // trigger callback on Return
+                    text = ""
                 }
             }
             .padding(.horizontal, 12)

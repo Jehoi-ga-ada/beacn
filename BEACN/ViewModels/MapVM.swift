@@ -48,6 +48,7 @@ class MapVM: ObservableObject {
     @Published var editingPlace: Place? = nil
     @Published var editPlaceName: String = ""
     @Published var selectedEmoji: String = "📍"
+    @Published var showMaxPlacesAlert = false
     
     func fetchSavedPlaces() {
         Task {
@@ -147,10 +148,16 @@ class MapVM: ObservableObject {
     }
     
     func addPlace(_ place: Place) {
+        if savedPlaces.count >= 3 {
+            self.showMaxPlacesAlert = true
+//            self.showSavePlaceSheet = false // optional: close save sheet automatically
+            return
+        }
+        
         Task {
             do {
                 let saved = try await savedPlaceService.createSavedPlace(
-                    type: "custom", // wasnt assigned anything
+                    type: "custom",
                     name: place.name,
                     latitude: place.latitude,
                     longitude: place.longitude,
@@ -165,6 +172,7 @@ class MapVM: ObservableObject {
             }
         }
     }
+
 
     
     func searchPlaces() {
