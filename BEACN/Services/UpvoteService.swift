@@ -23,7 +23,7 @@ struct Upvote: Codable {
 }
 
 struct UpvoteResponse: Codable {
-    let message: String
+    let message: String?
     let count: Int?
 }
 
@@ -41,13 +41,13 @@ final class UpvoteService: BaseService {
 
     func toggleUpvote(reportId: String) async throws -> UpvoteResponse {
         let body = try JSONEncoder().encode(["report_id": reportId])
-        let request = try await makeRequest(method: "POST", body: body)
+        let request = try await makeRequest(method: "POST", body: body, useUserAuth: true)
         return try await performRequest(request)
     }
 
     func removeUpvote(reportId: String) async throws -> Bool {
-        let request = try await makeRequest(path: reportId, method: "DELETE")
+        let request = try await makeRequest(path: reportId, method: "DELETE", useUserAuth: true)
         let response: UpvoteResponse = try await performRequest(request)
-        return response.message.lowercased().contains("deleted")
+        return ((response.message?.lowercased().contains("deleted")) != nil)
     }
 }

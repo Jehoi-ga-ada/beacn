@@ -404,27 +404,27 @@ struct MapView: View {
                     .padding(.vertical, 250)
                 }
                 if viewModel.showReportCard, let selectedReport = viewModel.selectedReport {
+                    let reportView = selectedReport.toReportView()
                     VStack {
                         Spacer()
                         ReportCardView(
-                            report: selectedReport.toReportView(),
-                            onUpvote: {
-                                Task {
-                                    do {
-                                        let upvoteService = UpvoteService()
-                                        let response = try await upvoteService.toggleUpvote(reportId: selectedReport.id)
-                                        print("Upvote response: \(response)")
-                                        await reportStore.fetchAllReports()
-                                    } catch {
-                                        print("Failed to upvote: \(error)")
-                                    }
+                            report: reportView,
+                            onToggleUpvote: {
+                                let upvoteService = UpvoteService()
+                                let reportService = ReportService()
+                                
+                                _ = try await upvoteService.toggleUpvote(reportId: selectedReport.id)
+                                
+                                //TODO: Bugging upvotes
+                                let updatedReports = try await reportService.getAllReports()
+                                if let updated = updatedReports.first(where: { $0.id == selectedReport.id }) {
+                                    print("🔄 Updated count:", updated.reportUpvoteCount?.first?.count ?? 0)
+                                    return updated.reportUpvoteCount?.first?.count ?? reportView.upvotes
                                 }
+                                
+                                return reportView.upvotes // fallback
                             }
-                        )                    .transition(.move(edge: .bottom))
-                        .onTapGesture {
-                            // Dismiss when tapping outside
-                            viewModel.showReportCard = false
-                        }
+                        )                        .transition(.move(edge: .bottom))
                     }
                     .background(
                         Color.black.opacity(0.3)
@@ -435,6 +435,8 @@ struct MapView: View {
                     )
                     .zIndex(3)
                 }
+
+
                 // Delete place confirmation
                 if viewModel.showDeletePlaceAlert, let placeToDelete = viewModel.placeToDelete {
                     VStack {
@@ -460,7 +462,6 @@ struct MapView: View {
                             .padding(.horizontal, 20)
                             .padding(.top, 20)
                             
-                            // Delete button
                             Button("Remove from Saved Places") {
                                 viewModel.deletePlace(placeToDelete)
                             }
@@ -529,173 +530,7 @@ struct MapView: View {
     }
 }
 
-struct OrbitView: View {
-    let places: [Place]
-    let onAdd: () -> Void
-    let onSelect: (Place) -> Void
-    let onLongPress: (Place) -> Void
-    let radius: CGFloat
-    
-    var body: some View {
-        ZStack {
-            let total = places.count + 1
-            let startAngle = -10.0 * (.pi / 180)
-            let endAngle = 110.0 * (.pi / 180)
-            
-            ForEach(0..<total, id: \.self) { index in
-                let angle = startAngle + (Double(index) / Double(max(total - 1, 1))) * (endAngle - startAngle)
-                
-                if index < places.count {
-                    Button(action: {
-                        onSelect(places[index])
-                    }) {
-                        Text(places[index].emoji)
-                            .font(.largeTitle)
-                            .padding(10)
-                            .background(Circle().fill(Color.white))
-                            .shadow(radius: 4)
-                    }
-                    .onLongPressGesture(minimumDuration: 0.5, maximumDistance: 10) {
-                        print("long press") //tacky gesture
-                        onLongPress(places[index])
-                    }
-                    .offset(x: cos(angle) * radius,
-                            y: -sin(angle) * radius)
-                } else {
-                    Button(action: onAdd) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 20, weight: .bold))
-                            .padding(12)
-                            .background(Circle().fill(Color.white))
-                            .shadow(radius: 3)
-                    }
-                    .offset(x: cos(angle) * radius,
-                            y: -sin(angle) * radius)
-                }
-            }
-        }
-    }
-}
 
-
-struct SearchOverlayView: View {
-    @ObservedObject var viewModel: MapVM
-    @Binding var isSearching: Bool
-    @FocusState<Bool>.Binding var searchFieldFocused: Bool
-    @Binding var query: String
-    
-    var body: some View {
-        ZStack(alignment: .top) {
-            Color.black.opacity(0.8)
-                .ignoresSafeArea()
-                .onTapGesture { dismissOverlay() }
-            
-            VStack(alignment: .leading, spacing: 16) {
-                BeaconSearchBar(
-                    text: $query,
-                    isSearching: $isSearching,
-                    searchFieldFocused: $searchFieldFocused,
-                    showsCancel: true,
-                    onCancel: { dismissOverlay() },
-                    onSubmit: { viewModel.searchPlaces() }
-                )
-                .padding()
-                
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 24) {
-                        if !viewModel.recentSearches.isEmpty {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Recents")
-                                    .font(.headline)
-                                    .foregroundColor(.gray)
-                                
-                                ForEach(viewModel.recentSearches) { recent in
-                                    ItemRow(title: recent.name, icon: "magnifyingglass")
-                                        .foregroundColor(.white)
-                                        .onTapGesture {
-                                            viewModel.searchQuery = recent.name
-                                            viewModel.searchPlaces()
-                                            dismissOverlay()
-                                        }
-                                }
-                            }
-                        }
-                        
-                        if !viewModel.savedPlaces.isEmpty {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Saved Places")
-                                    .font(.headline)
-                                    .foregroundColor(.gray)
-                                
-                                ForEach(viewModel.savedPlaces) { place in
-                                    ItemRow(title: place.name, emoji: place.emoji)
-                                        .foregroundColor(.white)
-                                        .onTapGesture {
-                                            viewModel.focusOn(place)
-                                            dismissOverlay()
-                                        }
-                                }
-                            }
-                        }
-                    }
-                    .padding(.horizontal)
-                }
-                Spacer()
-            }
-        }
-        .transition(.opacity)
-    }
-    
-    private func dismissOverlay() {
-        withAnimation {
-            isSearching = false
-            searchFieldFocused = false
-        }
-    }
-}
-
-struct ItemRow: View {
-    var title: String
-    var icon: String?
-    var emoji: String?
-
-    var body: some View {
-        HStack(spacing: 16) {
-            if let emoji = emoji {
-                Text(emoji)
-                    .font(.title2)
-            } else if let icon = icon {
-                Image(systemName: icon)
-                    .foregroundColor(.white.opacity(0.7))
-            }
-            
-            Text(title)
-                .font(.body)
-                .foregroundColor(.white)
-            
-            Spacer()
-        }
-        .padding(.vertical, 8)
-    }
-}
-
-
-struct RecentSearch: Identifiable {
-    let id = UUID()
-    let name: String
-    // Add other relevant data like coordinates if needed
-}
-
-struct MapAnnotationItem: Identifiable {
-    let id = UUID()
-    let coordinate: CLLocationCoordinate2D
-    let type: AnnotationType
-    
-    enum AnnotationType {
-        case place(Place)
-        case report(Report)
-    }
-}
 
 
 #Preview {

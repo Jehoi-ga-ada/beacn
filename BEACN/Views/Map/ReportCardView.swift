@@ -11,45 +11,54 @@ import MapKit
 
 struct ReportCardView: View {
     let report: ReportView
-    var onUpvote: () -> Void
-    
+    var onToggleUpvote: () async throws -> Int  // returns latest count
+
+    @State private var isUpvoted: Bool = false
+    @State private var upvoteCount: Int = 0
+    @State private var isLoading: Bool = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("\(report.emoji) \(report.category)")
                     .font(.headline)
                 Spacer()
-                Text(report.timestamp, style: .date) //change styling here, .time/date
+                Text(report.timestamp, style: .date)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
-            
-            Button {
-                print("Add photo tapped")
-            } label: {
-                HStack {
-                    Image(systemName: "photo.on.rectangle.angled")
-                    Text("Add Photo")
-                }
-                .font(.subheadline)
-                .foregroundColor(.blue)
-            }
-            
+
             Text("Reported by \(report.reporter)")
                 .font(.footnote)
                 .foregroundColor(.secondary)
-            
-            Button(action: onUpvote) {
+
+            Button {
+                Task {
+                    guard !isLoading else { return }
+                    isLoading = true
+                    do {
+                        let newCount = try await onToggleUpvote()
+                        withAnimation {
+                            isUpvoted.toggle()
+                            upvoteCount = newCount
+                        }
+                    } catch {
+                        print("⚠️ Failed to toggle upvote: \(error)")
+                    }
+                    isLoading = false
+                }
+            } label: {
                 HStack {
-                    Image(systemName: "hand.thumbsup.fill")
-                    Text("Upvote (\(report.upvotes))")
+                    Image(systemName: isUpvoted ? "hand.thumbsup.fill" : "hand.thumbsup")
+                    Text(isUpvoted ? "Upvote (\(upvoteCount))" : "Upvote (\(upvoteCount))")
                 }
                 .padding(.vertical, 8)
                 .padding(.horizontal, 16)
-                .background(Color.blue)
+                .background(isUpvoted ? Color.green : Color.blue)
                 .foregroundColor(.white)
                 .clipShape(Capsule())
             }
+            .disabled(isLoading)
             .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .padding()
@@ -57,20 +66,25 @@ struct ReportCardView: View {
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .shadow(radius: 4)
         .padding(.horizontal)
+        .onAppear {
+            upvoteCount = report.upvotes
+        }
     }
 }
 
-#Preview {
-    ReportCardView(
-        report: ReportView(
-            category: "Road Problems",
-            emoji: "🚧",
-            timestamp: Date(),
-            reporter: "Jessica Lynn",
-            upvotes: 12,
-            coordinate: CLLocationCoordinate2D(latitude: -6.2088, longitude: 106.8456)
-        ),
-        onUpvote: { print("Upvoted!") }
-    )
-}
+
+
+//#Preview {
+//    ReportCardView(
+//        report: ReportView(
+//            category: "Road Problems",
+//            emoji: "🚧",
+//            timestamp: Date(),
+//            reporter: "Jessica Lynn",
+//            upvotes: 12,
+//            coordinate: CLLocationCoordinate2D(latitude: -6.2088, longitude: 106.8456)
+//        ),
+//        onUpvote: { print("Upvoted!") }
+//    )
+//}
 

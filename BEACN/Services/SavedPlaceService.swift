@@ -78,7 +78,7 @@ final class SavedPlaceService: BaseService {
 
     func deleteSavedPlace(id: String) async throws -> Bool {
         struct DeleteResponse: Codable { let message: String }
-        let request = try await makeRequest(path: id, method: "DELETE")
+        let request = try await makeRequest(path: id, method: "DELETE", useUserAuth: true)
         let response: DeleteResponse = try await performRequest(request)
         return response.message.lowercased().contains("deleted")
     }
