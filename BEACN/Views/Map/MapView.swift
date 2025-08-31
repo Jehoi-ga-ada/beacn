@@ -17,6 +17,7 @@ struct MapView: View {
 //    @State private var selectedReport: Report?
     @State private var showingCamera = false
     @State private var capturedPhoto: UIImage?
+    @State private var isAnalyzing = false
     
     var annotations: [MapAnnotationItem] {
         let placeItems = viewModel.savedPlaces.map {
@@ -88,6 +89,32 @@ struct MapView: View {
                             viewModel.showOrbit = false
                         }
                     }
+                }
+                
+                // Analysis loading overlay
+                if isAnalyzing {
+                    ZStack {
+                        Color.black.opacity(0.4)
+                            .ignoresSafeArea()
+                        
+                        VStack(spacing: 20) {
+                            ProgressView()
+                                .scaleEffect(1.5)
+                                .progressViewStyle(CircularProgressViewStyle(tint: .blue))
+                            
+                            Text("Analyzing photo for disasters...")
+                                .font(.headline)
+                                .foregroundColor(.blue)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                        }
+                        .padding(30)
+                        .background(Color.white)
+                        .cornerRadius(20)
+                        .shadow(radius: 10)
+                        .padding(.horizontal, 40)
+                    }
+                    .zIndex(10)
                 }
                 
                 //custom header
@@ -252,6 +279,7 @@ struct MapView: View {
                                     .clipShape(Circle())
                                     .shadow(radius: 4)
                             }
+                            
                             Button(action: { viewModel.showReportSheet = true }) {
                                 Image(systemName: "megaphone.fill")
                                     .resizable()
@@ -296,6 +324,8 @@ struct MapView: View {
                     }
                     .padding(.horizontal, 20)
                 }
+
+                
                 if isSearching {
                     SearchOverlayView(
                         viewModel: viewModel,
@@ -382,7 +412,7 @@ struct MapView: View {
                         RoundedRectangle(cornerRadius: 30)
                             .fill(Color.white)
                         VStack(alignment: .center, spacing: 10) {
-                            Text("You’ve reached maximum slots of saved places on Free Plan.")
+                            Text("You've reached maximum slots of saved places on Free Plan.")
                                 .font(.title3)
                                 .fontWeight(.medium)
                                 .padding(.horizontal, 23)
@@ -525,11 +555,20 @@ struct MapView: View {
             CameraCaptureView(
                 onPhotoCapture: { image in
                     capturedPhoto = image
-                    print("📸 Captured photo from MapView")
                 },
                 onNavigateNext: {
-                    showingCamera = false
-                    print("➡️ Move to next step after camera (if needed)")
+                    // Start automatic analysis after photo capture and wait for it
+//                    MainActor.run {
+                        isAnalyzing = true
+//                    }
+                    Task {
+                        print(isAnalyzing)
+                        await analyzePhoto(capturedPhoto!)
+                        
+                        await MainActor.run {
+                            isAnalyzing = false
+                        }
+                    }
                 }
             )
         }
@@ -542,8 +581,19 @@ struct MapView: View {
             searchFieldFocused = false
         }
     }
-}
+    
+    private func analyzePhoto(_ image: UIImage) async {
+        print("🔍 Starting photo analysis...")
+        
+        do {
+            let result = try await OllamaService.shared.analyzeImage(image)
+            print("✅ Analysis complete: \(result)")
+        } catch {
+            print("❌ Analysis failed: \(error.localizedDescription)")
+        }
+    }
 
+}
 
 
 
