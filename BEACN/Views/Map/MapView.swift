@@ -462,7 +462,7 @@ struct MapView: View {
                                 //TODO: Bugging upvotes
                                 let updatedReports = try await reportService.getAllReports()
                                 if let updated = updatedReports.first(where: { $0.id == selectedReport.id }) {
-                                    print("🔄 Updated count:", updated.reportUpvoteCount?.first?.count ?? 0)
+                                    print("📄 Updated count:", updated.reportUpvoteCount?.first?.count ?? 0)
                                     return updated.reportUpvoteCount?.first?.count ?? reportView.upvotes
                                 }
                                 
@@ -538,7 +538,7 @@ struct MapView: View {
         .fullScreenCover(isPresented: $viewModel.showLocationPicker) {
             ReportLocationPickerView(
                 userLocation: viewModel.region.center,
-                emoji: viewModel.selectedSubcategory?.emoji ?? "📍"
+                emoji: viewModel.selectedSubcategory?.emoji ?? "🚨"
             ) { coord in
 //                print("User placed report at: \(coord.latitude), \(coord.longitude)")
                 Task {
@@ -588,11 +588,42 @@ struct MapView: View {
         do {
             let result = try await OllamaService.shared.analyzeImage(image)
             print("✅ Analysis complete: \(result)")
+            
+            // Generate report based on analysis result and current user location
+            await generateReportFromAnalysis(result)
+            
         } catch {
             print("❌ Analysis failed: \(error.localizedDescription)")
         }
     }
-
+    
+    private func generateReportFromAnalysis(_ analysisResult: String) async {
+        print("📝 Generating report from analysis...")
+        
+        do {
+            // Get current user location from the map region
+            let currentLocation = viewModel.region.center
+            
+            // Create report using the analysis result as the category name
+            // You might want to parse the analysisResult to extract appropriate category
+//            let categoryName = extractCategoryFromAnalysis(analysisResult)
+            
+            let response = try await viewModel.reportService.createReport(
+                categoryName: analysisResult,
+                latitude: currentLocation.latitude,
+                longitude: currentLocation.longitude
+            )
+            
+            print("✅ Report created successfully: \(response)")
+            
+            // Refresh all reports to show the new one
+            await reportStore.fetchAllReports()
+            print("🔄 Reports refreshed")
+            
+        } catch {
+            print("❌ Failed to create report: \(error.localizedDescription)")
+        }
+    }
 }
 
 
