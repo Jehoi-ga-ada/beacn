@@ -283,10 +283,6 @@ Higher values = larger file size, slower processing, higher quality
 3. Make your changes
 4. Submit a pull request
 
-## License
-
-[Add your license information here]
-
 ## Support
 
 For issues and questions:
