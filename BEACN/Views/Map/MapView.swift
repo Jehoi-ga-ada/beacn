@@ -17,6 +17,7 @@ struct MapView: View {
 //    @State private var selectedReport: Report?
     @State private var showingCamera = false
     @State private var capturedPhoto: UIImage?
+    @State private var isAnalyzing = false
     
     var annotations: [MapAnnotationItem] {
         let placeItems = viewModel.savedPlaces.map {
@@ -88,6 +89,32 @@ struct MapView: View {
                             viewModel.showOrbit = false
                         }
                     }
+                }
+                
+                // Analysis loading overlay
+                if isAnalyzing {
+                    ZStack {
+                        Color.black.opacity(0.4)
+                            .ignoresSafeArea()
+                        
+                        VStack(spacing: 20) {
+                            ProgressView()
+                                .scaleEffect(1.5)
+                                .progressViewStyle(CircularProgressViewStyle(tint: .blue))
+                            
+                            Text("Analyzing photo for disasters...")
+                                .font(.headline)
+                                .foregroundColor(.blue)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                        }
+                        .padding(30)
+                        .background(Color.white)
+                        .cornerRadius(20)
+                        .shadow(radius: 10)
+                        .padding(.horizontal, 40)
+                    }
+                    .zIndex(10)
                 }
                 
                 //custom header
@@ -252,6 +279,7 @@ struct MapView: View {
                                     .clipShape(Circle())
                                     .shadow(radius: 4)
                             }
+                            
                             Button(action: { viewModel.showReportSheet = true }) {
                                 Image(systemName: "megaphone.fill")
                                     .resizable()
@@ -296,6 +324,8 @@ struct MapView: View {
                     }
                     .padding(.horizontal, 20)
                 }
+
+                
                 if isSearching {
                     SearchOverlayView(
                         viewModel: viewModel,
@@ -382,7 +412,7 @@ struct MapView: View {
                         RoundedRectangle(cornerRadius: 30)
                             .fill(Color.white)
                         VStack(alignment: .center, spacing: 10) {
-                            Text("You’ve reached maximum slots of saved places on Free Plan.")
+                            Text("You've reached maximum slots of saved places on Free Plan.")
                                 .font(.title3)
                                 .fontWeight(.medium)
                                 .padding(.horizontal, 23)
@@ -432,7 +462,7 @@ struct MapView: View {
                                 //TODO: Bugging upvotes
                                 let updatedReports = try await reportService.getAllReports()
                                 if let updated = updatedReports.first(where: { $0.id == selectedReport.id }) {
-                                    print("🔄 Updated count:", updated.reportUpvoteCount?.first?.count ?? 0)
+                                    print("📄 Updated count:", updated.reportUpvoteCount?.first?.count ?? 0)
                                     return updated.reportUpvoteCount?.first?.count ?? reportView.upvotes
                                 }
                                 
@@ -508,7 +538,7 @@ struct MapView: View {
         .fullScreenCover(isPresented: $viewModel.showLocationPicker) {
             ReportLocationPickerView(
                 userLocation: viewModel.region.center,
-                emoji: viewModel.selectedSubcategory?.emoji ?? "📍"
+                emoji: viewModel.selectedSubcategory?.emoji ?? "🚨"
             ) { coord in
 //                print("User placed report at: \(coord.latitude), \(coord.longitude)")
                 Task {
@@ -525,11 +555,20 @@ struct MapView: View {
             CameraCaptureView(
                 onPhotoCapture: { image in
                     capturedPhoto = image
-                    print("📸 Captured photo from MapView")
                 },
                 onNavigateNext: {
-                    showingCamera = false
-                    print("➡️ Move to next step after camera (if needed)")
+                    // Start automatic analysis after photo capture and wait for it
+//                    MainActor.run {
+                        isAnalyzing = true
+//                    }
+                    Task {
+                        print(isAnalyzing)
+                        await analyzePhoto(capturedPhoto!)
+                        
+                        await MainActor.run {
+                            isAnalyzing = false
+                        }
+                    }
                 }
             )
         }
@@ -542,8 +581,50 @@ struct MapView: View {
             searchFieldFocused = false
         }
     }
+    
+    private func analyzePhoto(_ image: UIImage) async {
+        print("🔍 Starting photo analysis...")
+        
+        do {
+            let result = try await OllamaService.shared.analyzeImage(image)
+            print("✅ Analysis complete: \(result)")
+            
+            // Generate report based on analysis result and current user location
+            await generateReportFromAnalysis(result)
+            
+        } catch {
+            print("❌ Analysis failed: \(error.localizedDescription)")
+        }
+    }
+    
+    private func generateReportFromAnalysis(_ analysisResult: String) async {
+        print("📝 Generating report from analysis...")
+        
+        do {
+            // Get current user location from the map region
+            let currentLocation = viewModel.region.center
+            
+            // Create report using the analysis result as the category name
+            // You might want to parse the analysisResult to extract appropriate category
+//            let categoryName = extractCategoryFromAnalysis(analysisResult)
+            
+            let response = try await viewModel.reportService.createReport(
+                categoryName: analysisResult,
+                latitude: currentLocation.latitude,
+                longitude: currentLocation.longitude
+            )
+            
+            print("✅ Report created successfully: \(response)")
+            
+            // Refresh all reports to show the new one
+            await reportStore.fetchAllReports()
+            print("🔄 Reports refreshed")
+            
+        } catch {
+            print("❌ Failed to create report: \(error.localizedDescription)")
+        }
+    }
 }
-
 
 
 
