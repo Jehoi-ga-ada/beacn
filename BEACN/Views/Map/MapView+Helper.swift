@@ -76,7 +76,10 @@ struct SearchOverlayView: View {
                     searchFieldFocused: $searchFieldFocused,
                     showsCancel: true,
                     onCancel: { dismissOverlay() },
-                    onSubmit: { viewModel.searchPlaces() }
+                    onSubmit: {
+                        viewModel.searchPlaces()
+                        dismissOverlay() // Add this line
+                    }
                 )
                 .padding()
                 
@@ -94,6 +97,7 @@ struct SearchOverlayView: View {
                                         .onTapGesture {
                                             viewModel.searchQuery = recent.name
                                             viewModel.searchPlaces()
+                                            viewModel.searchQuery = "" // Clear after search
                                             dismissOverlay()
                                         }
                                 }
@@ -111,6 +115,7 @@ struct SearchOverlayView: View {
                                         .foregroundColor(.white)
                                         .onTapGesture {
                                             viewModel.focusOn(place)
+                                            viewModel.searchQuery = "" // Clear query
                                             dismissOverlay()
                                         }
                                 }
@@ -126,6 +131,7 @@ struct SearchOverlayView: View {
     }
     
     private func dismissOverlay() {
+        viewModel.searchQuery = "" // Clear query when dismissing
         withAnimation {
             isSearching = false
             searchFieldFocused = false

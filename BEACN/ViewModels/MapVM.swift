@@ -101,14 +101,41 @@ class MapVM: ObservableObject {
             emoji: selectedEmoji
         )
         
-        if let index = savedPlaces.firstIndex(where: { $0.id == editingPlace.id }) {
-            savedPlaces[index] = updatedPlace
+        Task {
+            do {
+                // Save to persistent storage using the service
+                let saved = try await savedPlaceService.updateSavedPlace(
+                    id: editingPlace.id,
+                    name: updatedPlace.name,
+                    latitude: updatedPlace.latitude,
+                    longitude: updatedPlace.longitude,
+                    emoji: updatedPlace.emoji
+                )
+                
+                // Update UI on main thread
+                DispatchQueue.main.async {
+                    if let index = self.savedPlaces.firstIndex(where: { $0.id == editingPlace.id }) {
+                        self.savedPlaces[index] = updatedPlace // Use updatedPlace to keep emoji
+                    }
+                    
+                    // Reset form state
+                    self.editingPlace = nil
+                    self.editPlaceName = ""
+                    self.selectedEmoji = "📍"
+                    self.showEditPlaceSheet = false
+                }
+                
+                // Refresh from server to ensure consistency
+                fetchSavedPlaces()
+                
+            } catch {
+                print("❌ Failed to update place:", error)
+                // Optionally handle error in UI
+                DispatchQueue.main.async {
+                    // Could show an error alert here
+                }
+            }
         }
-        
-        self.editingPlace = nil
-        self.editPlaceName = ""
-        self.selectedEmoji = "📍"
-        self.showEditPlaceSheet = false
     }
 
     
@@ -150,7 +177,6 @@ class MapVM: ObservableObject {
     func addPlace(_ place: Place) {
         if savedPlaces.count >= 3 {
             self.showMaxPlacesAlert = true
-//            self.showSavePlaceSheet = false // optional: close save sheet automatically
             return
         }
         
@@ -164,7 +190,11 @@ class MapVM: ObservableObject {
                     emoji: place.emoji
                 )
                 DispatchQueue.main.async {
-                    self.savedPlaces.append(saved.toPlace())
+                    let newPlace = saved.toPlace()
+                    self.savedPlaces.append(newPlace)
+                    
+                    // Auto-trigger edit mode for the newly created place
+                    self.startEditingPlace(newPlace)
                 }
                 fetchSavedPlaces()
             } catch {

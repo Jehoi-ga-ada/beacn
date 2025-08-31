@@ -81,6 +81,14 @@ struct MapView: View {
                 .task {
                     await reportStore.fetchAllReports()
                 }
+                .onTapGesture {
+                    // Close orbit when tapping anywhere on the map
+                    if viewModel.showOrbit {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                            viewModel.showOrbit = false
+                        }
+                    }
+                }
                 
                 //custom header
                 if !isSearching {
@@ -323,8 +331,8 @@ struct MapView: View {
                                 .padding(.horizontal, 40)
                                 .background(.white)
                                 .fontWeight(.medium)
-                                .shadow(radius: 5)
                                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                .shadow(radius: 5)
                                     
                                 Spacer()
                                     
@@ -338,8 +346,9 @@ struct MapView: View {
                                 .background(Color(hex: "005DAD"))
                                 .foregroundColor(.white)
                                 .fontWeight(.medium)
-                                .shadow(radius: 5)
                                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                .shadow(radius: 5)
+                                
                             }
                             .padding(.horizontal)
                             .padding(.top, 10)
@@ -354,6 +363,11 @@ struct MapView: View {
                     }
                     .transition(.move(edge: .bottom))
                     .zIndex(2)
+                }
+                if viewModel.showEditPlaceSheet {
+                    EditPlaceOverlayView(viewModel: viewModel)
+                        .transition(.move(edge: .bottom))
+                        .zIndex(5)
                 }
                 if viewModel.showMaxPlacesAlert {
                     Color.black.opacity(0.4)
@@ -382,8 +396,8 @@ struct MapView: View {
                                 .padding(.horizontal, 40)
                                 .background(.white)
                                 .fontWeight(.medium)
-                                .shadow(radius: 5)
                                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                .shadow(radius: 5)
                                                                 
                                 Button("Upgrade") {
                                     
@@ -393,8 +407,8 @@ struct MapView: View {
                                 .background(Color(hex: "005DAD"))
                                 .foregroundColor(.white)
                                 .fontWeight(.medium)
-                                .shadow(radius: 5)
                                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                .shadow(radius: 5)
                             }
                             .padding(.horizontal)
                             .padding(.top, 10)
@@ -496,14 +510,14 @@ struct MapView: View {
                 userLocation: viewModel.region.center,
                 emoji: viewModel.selectedSubcategory?.emoji ?? "📍"
             ) { coord in
-                print("User placed report at: \(coord.latitude), \(coord.longitude)")
+//                print("User placed report at: \(coord.latitude), \(coord.longitude)")
                 Task {
                     let response = try await viewModel.reportService.createReport(
                         categoryName: viewModel.selectedSubcategory?.name ?? "Fallback",
                         latitude: coord.latitude,
                         longitude: coord.longitude
                     )
-                    print(response)
+                    await reportStore.fetchAllReports()
                 }
             }
         }

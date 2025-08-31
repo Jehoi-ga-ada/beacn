@@ -12,11 +12,9 @@ struct CameraCaptureView: View {
     @State private var capturedImage: UIImage? = nil
     @Environment(\.dismiss) var dismiss
     
-    // Completion handlers
     let onPhotoCapture: ((UIImage) -> Void)?
     let onNavigateNext: (() -> Void)?
     
-    // Initialize with optional completion handlers
     init(onPhotoCapture: ((UIImage) -> Void)? = nil, onNavigateNext: (() -> Void)? = nil) {
         self.onPhotoCapture = onPhotoCapture
         self.onNavigateNext = onNavigateNext
@@ -25,7 +23,6 @@ struct CameraCaptureView: View {
     var body: some View {
         ZStack {
             if let image = capturedImage {
-                // Show captured photo preview briefly
                 VStack(spacing: 0) {
                     Spacer()
                     
@@ -38,13 +35,19 @@ struct CameraCaptureView: View {
                     Spacer()
                 }
                 .onAppear {
-                    // Auto-dismiss after showing preview
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                         dismiss()
                     }
                 }
             } else {
-                Color.black.ignoresSafeArea()
+                if isShowingCamera {
+                    Color.black.ignoresSafeArea()
+                } else {
+                    Color.clear
+                        .onAppear {
+                            dismiss()
+                        }
+                }
             }
         }
         .fullScreenCover(isPresented: $isShowingCamera) {

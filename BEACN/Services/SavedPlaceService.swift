@@ -68,12 +68,18 @@ final class SavedPlaceService: BaseService {
         return try await performRequest(request)
     }
 
-    func updateSavedPlace(id: String, name: String, latitude: Double, longitude: Double) async throws -> SavedPlace {
+    func updateSavedPlace(id: String, name: String, latitude: Double, longitude: Double, emoji: String) async throws -> SavedPlace {
         let body = try JSONEncoder().encode([
-            "name": name
+            "name": name,
+            "emoji": emoji
         ])
-        let request = try await makeRequest(path: id, method: "PUT", body: body)
-        return try await performRequest(request)
+        let request = try await makeRequest(path: id, method: "PUT", body: body, useUserAuth: true)
+        
+        let places: [SavedPlace] = try await performRequest(request)
+        guard let updatedPlace = places.first else {
+            throw NSError(domain: "SavedPlaceService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Empty response array"])
+        }
+        return updatedPlace
     }
 
     func deleteSavedPlace(id: String) async throws -> Bool {
